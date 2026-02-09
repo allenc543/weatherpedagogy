@@ -1,0 +1,53 @@
+currently rewriting chapters scott alexander style
+
+
+
+
+topics to include:
+
+RNNs
+LSTM
+XGBoost
+Transformer (autoencoder?)
+
+compare all models to each other, and also when to pipe them
+
+See if we can spot models learning latent variables like storms, rain (if we dont include precipitation), other stuff like that. solar radiation, soil temp, etc
+
+
+
+recommend a Transfer Learning experiment in your Forge:
+
+The Weather Pre-train: Train an LSTM on 20 years of NYC/Texas weather data. Its "Hidden State" will learn how to represent "Seasonality" and "Fluctuation."
+The Finance Fine-tune: Take that same model—with all its "knowledge" of how time-series behave—and try to fine-tune it on Bitcoin price data.
+The Discovery: You will likely find that the model learns the "physics" of the market much faster because it already understands the "grammar" of time-series from the weather.
+
+
+
+Bonus chapter: many datascientists are making philsoophical commitments without realizing it. this leads to confusion.
+"In statistics, we use the same math for Frequency (what happened) as we do for Probability"
+find more examples like this
+
+
+
+bonus chapter with considerations such as:
+The reason the distinction matters—despite the pipeline.run() wrapping—is Deployment.
+The Stateless Pipeline is easy to scale. You can send Row 1 to Server A and Row 2 to Server B. They don't need to talk to each other.
+The Stateful Pipeline is a nightmare to scale. Server B must know what happened in Row 1, or it can't process Row 2. You are tethered to the sequence.
+In your "Forge" project, this is the "final boss" of architecture. If you build a bot using lagged columns, you can backtest it in parallel across 100 CPU cores instantly. If you build it as a stateful LSTM, you usually have to run it sequentially, which is much slower.
+
+find all the modern considerations like that across all sorts of models
+
+
+
+Bonus bonus chapter
+literally learn science as a side effect of data science. see if we can derive all the scientific theory from just looking at data.
+and at what level ML is overkill, and when it helps
+
+4 levels of analysis
+weather
+financial markets
+neuronal ensembles
+quantum/atomic level (maybe hold off on this for now bc experiements might be too complex)
+
+obviously the theme is also that everything is like a brain..
