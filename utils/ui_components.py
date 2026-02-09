@@ -3,7 +3,14 @@ import streamlit as st
 
 
 def chapter_header(number, title, part=None):
-    """Render a chapter header with part label."""
+    """Render a chapter header with part label and wider layout."""
+    st.set_page_config(page_title=f"Ch {number}: {title}", layout="wide")
+    # Widen the main content area ~1.5x beyond Streamlit's default wide mode
+    st.markdown("""
+    <style>
+        .block-container { max-width: 75rem !important; padding-left: 2rem; padding-right: 2rem; }
+    </style>
+    """, unsafe_allow_html=True)
     if part:
         st.caption(f"Part {part}")
     st.title(f"Chapter {number}: {title}")

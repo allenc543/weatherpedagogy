@@ -24,13 +24,19 @@ from utils.ui_components import (
 # ── Header ───────────────────────────────────────────────────────────────────
 chapter_header(46, "Regression Metrics", part="X")
 st.markdown(
-    "When your model predicts a continuous number instead of a category, you need "
-    "different tools to judge how wrong it is. The question is not 'did you get it "
-    "right or wrong?' but 'how far off were you, and in what way?' This chapter "
-    "covers **MSE, RMSE, MAE, and R-squared** -- each of which answers a slightly "
-    "different version of that question -- and introduces **residual analysis**, "
-    "which is what you do when you want to know not just *how much* the model is "
-    "wrong, but *where* and *why*."
+    "In the last chapter, the model predicted a category -- 'this reading is from "
+    "Houston' -- and we measured whether it was right or wrong. Now the model is "
+    "predicting a *number*: the temperature in degrees Celsius. The question is no "
+    "longer 'did you get it right?' but 'how far off were you?'"
+)
+st.markdown(
+    "**The task**: Given a weather reading's humidity, wind speed, surface pressure, "
+    "hour of day, and month, predict the temperature. One number out. The model "
+    "says 24.3 degrees C and the actual temperature was 27.1 degrees C -- that is an "
+    "error of 2.8 degrees. But how do you summarize those errors across thousands of "
+    "predictions into a single number that tells you whether the model is any good? "
+    "That is what **MSE**, **RMSE**, **MAE**, and **R-squared** are for -- four "
+    "different ways of answering the same question, each with a different emphasis."
 )
 
 # ── Load data ────────────────────────────────────────────────────────────────
@@ -40,19 +46,30 @@ fdf = sidebar_filters(df)
 # ── 46.1 Metric Definitions ─────────────────────────────────────────────────
 st.header("46.1  Regression Metric Definitions")
 
+st.markdown(
+    "Before I define the formulas, let me set up the intuition. Suppose our model "
+    "makes 5 temperature predictions, with errors of +2, -3, +1, -1, and +6 degrees C. "
+    "How do we turn those 5 errors into one summary number?"
+)
+
 concept_box(
-    "Regression Metrics Overview",
-    "All regression metrics are different ways of answering 'how far off are the "
-    "predictions from reality?' But the devil is in the details:<br>"
-    "- <b>MAE</b>: the average absolute error. Intuitive, robust to outliers, in "
-    "the original units. The 'average miss distance.'<br>"
-    "- <b>MSE</b>: the average squared error. Punishes large errors disproportionately, "
-    "which is sometimes what you want (a 10-degree error is arguably more than twice "
-    "as bad as a 5-degree error).<br>"
-    "- <b>RMSE</b>: the square root of MSE. Back in original units, so you can "
-    "actually interpret it.<br>"
-    "- <b>R-squared</b>: the fraction of variance explained. 1.0 = your model is "
-    "perfect, 0.0 = you might as well have predicted the mean every time."
+    "Four Ways to Measure 'How Far Off Were You?'",
+    "Take those five errors: +2, -3, +1, -1, +6 degrees C.<br><br>"
+    "- <b>MAE</b> (Mean Absolute Error): Ignore the sign, average the magnitudes. "
+    "(2 + 3 + 1 + 1 + 6) / 5 = 2.6 degrees C. This is the most intuitive -- 'on average, "
+    "the model is off by about 2.6 degrees.' A straight answer to a straight question.<br><br>"
+    "- <b>MSE</b> (Mean Squared Error): Square each error, then average. "
+    "(4 + 9 + 1 + 1 + 36) / 5 = 10.2 degrees-squared. The squaring means that +6 degree "
+    "error contributes 36 to the sum, while the +1 degree errors each contribute only 1. "
+    "MSE <em>really</em> hates big mistakes.<br><br>"
+    "- <b>RMSE</b> (Root Mean Squared Error): Take the square root of MSE. "
+    "sqrt(10.2) = 3.2 degrees C. Back in the original units, but still penalizes big "
+    "errors more than MAE does. Notice RMSE (3.2) is larger than MAE (2.6) -- that is "
+    "always true, and the gap tells you something about outlier errors.<br><br>"
+    "- <b>R-squared</b>: 'What fraction of the temperature variation does the model explain?' "
+    "If temperatures in our dataset range from -5 to 42 degrees C, and the model captures "
+    "most of that variation, R-squared might be 0.85 -- meaning the model explains 85% of "
+    "what makes temperatures go up and down. The remaining 15% is unexplained."
 )
 
 col1, col2 = st.columns(2)
@@ -60,32 +77,43 @@ with col1:
     formula_box(
         "Mean Absolute Error (MAE)",
         r"\text{MAE} = \frac{1}{n}\sum_{i=1}^{n}|y_i - \hat{y}_i|",
-        "The average magnitude of errors, ignoring direction. If your MAE is 3 C, your model is typically off by about 3 degrees."
+        "For our weather model: if MAE = 3.0 C, the model's temperature predictions "
+        "are typically off by about 3 degrees. That is the difference between 'T-shirt "
+        "weather' and 'maybe grab a light jacket.'"
     )
     formula_box(
         "Mean Squared Error (MSE)",
         r"\text{MSE} = \frac{1}{n}\sum_{i=1}^{n}(y_i - \hat{y}_i)^2",
-        "Squaring means a prediction that is off by 10 degrees contributes 100 to the MSE, while one off by 1 degree contributes only 1. This metric really hates big mistakes."
+        "A prediction off by 10 degrees contributes 100 to the MSE; a prediction off "
+        "by 1 degree contributes only 1. If you care about avoiding catastrophic misses "
+        "-- like predicting 20 C when it is actually 35 C -- MSE is the metric that "
+        "shares your priorities."
     )
 with col2:
     formula_box(
         "Root Mean Squared Error (RMSE)",
         r"\text{RMSE} = \sqrt{\text{MSE}}",
-        "Same units as the target variable. RMSE of 4.2 C means your typical error is about 4 degrees. This is the metric most people find easiest to reason about."
+        "RMSE of 4.2 C means your typical error is about 4 degrees, in units you can "
+        "feel. The difference between RMSE and MAE tells you about outliers: if RMSE is "
+        "much bigger than MAE, a few predictions are spectacularly wrong."
     )
     formula_box(
         "R-squared (Coefficient of Determination)",
         r"R^2 = 1 - \frac{\sum(y_i - \hat{y}_i)^2}{\sum(y_i - \bar{y})^2}",
-        "1.0 = perfect prediction, 0.0 = you are doing no better than predicting the average every single time. Can actually go negative if your model is worse than the mean."
+        "R-squared compares your model to the dumbest possible model: always predicting "
+        "the average temperature. If R-squared = 0.0, your fancy model does no better than "
+        "just saying 'it is probably 20 C' every time. R-squared = 1.0 means perfection. "
+        "It can actually go negative if your model is somehow worse than the mean."
     )
 
 # ── 46.2 Compare Models ─────────────────────────────────────────────────────
 st.header("46.2  Compare Metrics Across Regression Models")
 
 st.markdown(
-    "Let us predict **temperature** from other weather features and see how different "
-    "models stack up. This is a nice test because temperature has clear physical meaning -- "
-    "an RMSE of 3 degrees Celsius is something you can actually feel."
+    "Let us make this concrete. We will predict **temperature** from humidity, wind "
+    "speed, surface pressure, hour of day, and month. We will train 6 different "
+    "regression models and compare their metrics side by side. The question is: which "
+    "model produces temperature predictions closest to reality, and by how much?"
 )
 
 target = "temperature_c"
@@ -144,6 +172,15 @@ apply_common_layout(fig_comp, title="RMSE and MAE Across Models", height=450)
 fig_comp.update_layout(barmode="group", yaxis_title="Error (C)", xaxis_tickangle=-30)
 st.plotly_chart(fig_comp, use_container_width=True)
 
+st.markdown(
+    "Look at the table above. Linear regression, Ridge, and Lasso all produce very "
+    "similar numbers -- that is because our features have a mostly linear relationship "
+    "with temperature, so regularization does not buy much here. The tree-based models "
+    "(Random Forest, Gradient Boosting) often do better because they can capture "
+    "non-linear patterns, like the fact that humidity affects temperature differently "
+    "at different times of day."
+)
+
 # ── 46.3 Physical Interpretation ────────────────────────────────────────────
 st.header("46.3  Physical Interpretation of Metrics")
 
@@ -153,10 +190,10 @@ best_mae = results_df.iloc[0]["MAE (C)"]
 
 st.markdown(f"""
 The best model (**{best_model_name}**) achieves:
-- **RMSE = {best_rmse:.2f} C** -- on average, predictions are off by about {best_rmse:.1f} degrees Celsius. That is the difference between needing a light jacket and not.
+- **RMSE = {best_rmse:.2f} C** -- on average, predictions are off by about {best_rmse:.1f} degrees Celsius.
 - **MAE = {best_mae:.2f} C** -- the typical prediction misses by about {best_mae:.1f} degrees.
 
-But what does 'off by {best_rmse:.1f} degrees' actually mean in context? Let us look at the temperature ranges we are dealing with:
+But what does 'off by {best_rmse:.1f} degrees' actually *feel* like? An error of 3 degrees C is the difference between 22 C (comfortable in a T-shirt) and 25 C (starting to feel warm). An error of 5 degrees is the difference between 'nice spring day' and 'turn on the air conditioning.' Let us put these numbers in context by looking at the temperature ranges in our data:
 """)
 
 # Temperature range by city
@@ -169,29 +206,51 @@ insight_box(
     f"An RMSE of {best_rmse:.1f} C means the model's typical error is about "
     f"**{(best_rmse / temp_range['Range (C)'].mean() * 100):.1f}%** of the average "
     f"city temperature range ({temp_range['Range (C)'].mean():.0f} C). "
-    "That is good enough that you would trust it for deciding what to wear, "
-    "but not for calibrating a scientific instrument. Context matters -- "
-    "always interpret your metrics in the units of your problem."
+    "Dallas temperature ranges from roughly -5 C to 42 C -- a span of 47 degrees. "
+    f"An error of {best_rmse:.1f} C is a small fraction of that range. You would trust "
+    "this model for deciding whether to wear a jacket, but not for calibrating a "
+    "precision thermometer. This is the kind of physical reasoning you should always "
+    "apply: an RMSE of 3 means nothing in the abstract, but 'off by about 3 degrees "
+    "on a day that could be anywhere from freezing to scorching' is actually quite good."
 )
 
 # ── 46.4 Residual Plots ─────────────────────────────────────────────────────
 st.header("46.4  Residual Analysis")
 
+st.markdown(
+    "A single number like RMSE tells you the *size* of the model's errors but not "
+    "their *pattern*. Residual analysis is how you figure out *where* and *why* the "
+    "model goes wrong."
+)
+
 concept_box(
-    "What Are Residuals?",
-    "Residuals = Actual - Predicted. They are the model's mistakes, laid bare. "
-    "Good residuals should be:<br>"
-    "- <b>Randomly scattered</b> around zero (no pattern -- if you see a pattern, "
-    "the model is systematically missing something it could learn).<br>"
-    "- <b>Normally distributed</b> (bell-shaped histogram -- the errors should be "
-    "symmetric, not skewed in one direction).<br>"
-    "- <b>Constant variance</b> (homoscedasticity -- the model should not be more "
-    "wrong at certain prediction ranges than others)."
+    "Residuals: The Model's Mistakes, Laid Bare",
+    "For each prediction, the residual is simply: Actual Temperature - Predicted "
+    "Temperature. If the model predicted 25 C and the actual was 28 C, the residual "
+    "is +3 C (the model undershot). If it predicted 30 C and the actual was 27 C, "
+    "the residual is -3 C (the model overshot).<br><br>"
+    "What you <em>want</em> to see in a good model's residuals:<br>"
+    "- <b>Randomly scattered around zero</b>: no pattern. If you see the residuals "
+    "forming a curve or a funnel, the model is systematically wrong at certain "
+    "temperature ranges and there is a pattern it could still learn.<br>"
+    "- <b>Normally distributed</b>: the histogram of residuals should look like a "
+    "bell curve centered at zero. The model is equally likely to overpredict as "
+    "underpredict, and by similar amounts.<br>"
+    "- <b>Constant spread</b>: the model should not be off by 1 degree at low "
+    "temperatures and off by 8 degrees at high temperatures. If the spread fans out, "
+    "that is called heteroscedasticity, and it means the model is much worse at "
+    "predicting some temperature ranges than others."
 )
 
 model_choice = st.selectbox("Model for residual analysis", list(trained_models.keys()), key="resid_model")
 _, y_pred_chosen = trained_models[model_choice]
 residuals = y_test.values - y_pred_chosen
+
+st.markdown(
+    f"Below are the residual plots for **{model_choice}**. The left plot shows "
+    f"residuals vs predicted temperature -- look for patterns. The right plot shows "
+    f"the histogram of residuals -- look for symmetry around zero."
+)
 
 col_a, col_b = st.columns(2)
 with col_a:
@@ -220,6 +279,14 @@ with col_b:
     st.plotly_chart(fig_hist, use_container_width=True)
 
 # Actual vs Predicted
+st.markdown(
+    "This next plot is the most intuitive: actual temperature (x-axis) vs predicted "
+    "temperature (y-axis). If the model were perfect, every point would land on the "
+    "dashed diagonal line. Points above the line mean the model overpredicted; points "
+    "below mean it underpredicted. How tightly the cloud hugs the line tells you how "
+    "good the model is."
+)
+
 fig_ap = go.Figure()
 fig_ap.add_trace(go.Scatter(
     x=y_test.values, y=y_pred_chosen,
@@ -253,23 +320,52 @@ resid_stats = pd.DataFrame({
 st.dataframe(resid_stats, use_container_width=True, hide_index=True)
 
 if abs(residuals.mean()) > 0.5:
-    warning_box("The mean residual is notably far from zero -- your model has a systematic bias. It is consistently over- or under-predicting, which means there is a pattern it has failed to learn.")
+    warning_box(
+        f"The mean residual is {residuals.mean():.2f} C -- notably far from zero. "
+        "This means the model has a systematic bias: it is consistently over- or "
+        "under-predicting temperatures. For example, if the mean residual is +2 C, "
+        "the model is consistently underestimating temperatures by about 2 degrees. "
+        "This suggests there is a pattern the model has not learned -- perhaps it is "
+        "missing a feature like solar radiation or cloud cover that would help."
+    )
 elif abs(pd.Series(residuals).skew()) > 1.0:
-    warning_box("The residuals are skewed, which means the model makes bigger mistakes in one direction than the other. It might be great at predicting mild temperatures but terrible at extremes (or vice versa).")
+    warning_box(
+        "The residuals are skewed, meaning the model makes bigger mistakes in one "
+        "direction. It might be accurate for mild temperatures (15-25 C) but "
+        "systematically underpredict during heat waves or overpredict during cold "
+        "snaps. If you see this, investigate: plot residuals vs time of year and "
+        "you may find the model struggles with extreme temperatures."
+    )
 else:
-    st.success("Residuals look well-behaved: centered near zero, roughly symmetric, moderate spread. The model is making honest, random-looking errors -- which is about the best you can hope for.")
+    st.success(
+        "Residuals look well-behaved: centered near zero, roughly symmetric, "
+        "moderate spread. The model is making honest, random-looking errors -- no "
+        "systematic pattern that a more complex model could exploit. This is about "
+        "the best you can hope for."
+    )
 
 # ── 46.5 MAE vs RMSE comparison ─────────────────────────────────────────────
 st.header("46.5  MAE vs RMSE: When Does It Matter?")
 
+st.markdown(
+    "Here is a question that trips up a lot of people: if MAE and RMSE both measure "
+    "'how far off are the predictions,' why do we need both? The answer lies in how "
+    "they treat outlier errors."
+)
+
 concept_box(
-    "MAE vs RMSE",
-    "Here is a surprisingly subtle question: when do MAE and RMSE tell different "
-    "stories? RMSE penalizes large errors more than MAE (because it squares them "
-    "before averaging). So if RMSE is much bigger than MAE, that means a few "
-    "predictions are <b>spectacularly wrong</b>, pulling the RMSE up while the MAE "
-    "stays relatively calm. If RMSE and MAE are close, errors are uniform -- nobody "
-    "is spectacularly wrong, everyone is just a little bit wrong."
+    "MAE vs RMSE: A Weather Example",
+    "Suppose your model makes 100 temperature predictions. 99 of them are off by 1 "
+    "degree C, and one is off by 20 degrees C (maybe it wildly misjudged a freak cold "
+    "front).<br><br>"
+    "<b>MAE</b> = (99 * 1 + 1 * 20) / 100 = <b>1.19 C</b> -- the one big miss barely "
+    "moves the average, because MAE treats every error equally.<br><br>"
+    "<b>RMSE</b> = sqrt((99 * 1 + 1 * 400) / 100) = sqrt(4.99) = <b>2.23 C</b> -- "
+    "almost double the MAE, because squaring that 20-degree error turns it into 400, "
+    "which dominates the sum.<br><br>"
+    "So if RMSE is much bigger than MAE, it is a signal that a few predictions are "
+    "<b>spectacularly wrong</b>. If they are close, errors are uniform -- nothing is "
+    "spectacularly wrong, everything is just a little bit off."
 )
 
 ratio_df = results_df[["Model", "MAE (C)", "RMSE (C)"]].copy()
@@ -278,11 +374,13 @@ st.dataframe(ratio_df.style.format({"MAE (C)": "{:.3f}", "RMSE (C)": "{:.3f}", "
              use_container_width=True, hide_index=True)
 
 insight_box(
-    "An RMSE/MAE ratio close to 1.0 means errors are uniform -- the model is "
-    "consistently a little bit off. A ratio above about 1.4 is a red flag: some "
-    "predictions are very wrong. When you see that, go investigate the outlier "
-    "residuals -- there is probably a systematic pattern the model is missing for "
-    "certain types of inputs."
+    "An RMSE/MAE ratio close to 1.0 means the model's errors are uniform -- it is "
+    "off by a consistent amount for every prediction. A ratio above about 1.4 is a "
+    "red flag: some predictions are wildly wrong while most are fine. In weather terms, "
+    "the model might nail the temperature on 95% of days but completely botch it during "
+    "unusual weather events -- sudden cold fronts, heat waves, or temperature inversions. "
+    "When you see a high ratio, go find those outlier predictions and figure out what "
+    "makes them different."
 )
 
 code_example("""from sklearn.metrics import mean_squared_error, mean_absolute_error, r2_score
@@ -304,15 +402,22 @@ print(f"Std residual:  {residuals.std():.4f}")
 # ── Quiz ─────────────────────────────────────────────────────────────────────
 st.divider()
 quiz(
-    "What does an R-squared of 0.85 mean?",
+    "Your temperature prediction model has R-squared = 0.85. What does this mean?",
     [
         "The model has 85% accuracy",
-        "The model explains 85% of the variance in the target variable",
+        "The model explains 85% of the variance in temperature",
         "85% of predictions are within 1 degree of the actual value",
-        "The model has 15% error rate",
+        "The model has a 15% error rate",
     ],
     correct_idx=1,
-    explanation="R-squared measures the proportion of variance in the target that the model explains. 0.85 means the model captures 85% of what makes temperatures go up and down, and the remaining 15% is unexplained (noise, missing features, or model limitations).",
+    explanation=(
+        "R-squared = 0.85 means the model captures 85% of what makes temperatures "
+        "vary across our dataset. Temperature varies because of time of year, time of "
+        "day, weather systems, and location. The model explains 85% of that variation "
+        "using humidity, wind speed, pressure, hour, and month. The remaining 15% is "
+        "unexplained -- maybe it is cloud cover, precipitation, or just random "
+        "day-to-day weather noise that our features do not capture."
+    ),
     key="ch46_quiz1",
 )
 
@@ -325,19 +430,47 @@ quiz(
         "RMSE is faster to compute",
     ],
     correct_idx=1,
-    explanation="MSE is in squared units (C-squared, which is not a thing anyone has intuition about). RMSE takes the square root, putting the error back in degrees Celsius -- a unit you can actually reason about in the physical world.",
+    explanation=(
+        "MSE is in squared units -- degrees-Celsius-squared, which is not a unit anyone "
+        "has physical intuition about. An MSE of 16 sounds bad, but is it? You cannot "
+        "tell. RMSE takes the square root: sqrt(16) = 4 degrees C. Now you can reason "
+        "about it: 'the model's typical error is about 4 degrees -- that is the difference "
+        "between a warm spring day and a mildly cool one.' RMSE puts the error back in "
+        "units you can feel."
+    ),
     key="ch46_quiz2",
+)
+
+quiz(
+    "Your model has MAE = 2.1 C and RMSE = 5.8 C. What does the large gap tell you?",
+    [
+        "The model is overfitting",
+        "The model is underfitting",
+        "A few predictions are extremely wrong, even though most are close",
+        "The model needs more training data",
+    ],
+    correct_idx=2,
+    explanation=(
+        "An RMSE/MAE ratio of 5.8 / 2.1 = 2.76 is very high. Most predictions are off "
+        "by only about 2 degrees (the MAE), but a handful are off by 15 or 20 degrees, "
+        "and the squaring in RMSE amplifies those outliers enormously. This pattern is "
+        "common in weather prediction during extreme events -- the model handles typical "
+        "days well but completely misses heat waves or cold fronts. The fix: investigate "
+        "which predictions have the largest residuals and see if they share a pattern "
+        "(all nighttime? all during summer? all from one city?)."
+    ),
+    key="ch46_quiz3",
 )
 
 # ── Takeaways ────────────────────────────────────────────────────────────────
 st.divider()
 takeaways([
-    "**MAE** gives you the average error magnitude in original units. It is robust to outliers and easy to explain to non-technical people.",
-    "**RMSE** penalizes large errors more heavily. If you care a lot about avoiding big misses, RMSE is your metric.",
-    "**R-squared** tells you what fraction of the variance your model explains. 1.0 = perfect, 0.0 = you might as well predict the mean.",
-    "Always check **residual plots** -- patterns in residuals are the model trying to tell you something. A random cloud of points around zero is good. A trend or funnel shape is bad.",
-    "Physical interpretation matters: RMSE of 3.2 C means predictions are off by roughly 3 degrees. That is the difference between 'nice day for a walk' and 'maybe bring a sweater.'",
-    "If RMSE >> MAE, a few predictions are spectacularly wrong -- investigate the outlier residuals to find out what your model is missing.",
+    "**MAE** is the average miss distance in original units. If MAE = 3.0 C, the model's temperature predictions are typically off by about 3 degrees. It is robust to outliers and the easiest metric to explain.",
+    "**RMSE** penalizes large errors more heavily because of the squaring. If you care about avoiding catastrophic misses -- predicting 20 C when it is actually 35 C -- RMSE is your metric.",
+    "**R-squared** tells you what fraction of temperature variation the model explains. R-squared = 0.85 means the model captures 85% of what makes temperatures go up and down; the other 15% is noise or missing features.",
+    "Always check **residual plots**. A random cloud of points centered at zero is good. A curve, funnel, or systematic lean means the model is missing a pattern it could learn.",
+    "Physical interpretation matters: RMSE of 3.2 C means 'off by roughly 3 degrees.' That is the difference between 'nice day for a walk' and 'maybe bring a sweater.' Always translate metrics into units you can feel.",
+    "If RMSE >> MAE, a few predictions are spectacularly wrong. Find those outlier residuals -- they often correspond to extreme weather events the model does not handle well.",
 ])
 
 # ── Navigation ───────────────────────────────────────────────────────────────

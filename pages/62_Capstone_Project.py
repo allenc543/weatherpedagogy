@@ -29,23 +29,48 @@ from utils.constants import CITY_LIST, CITY_COLORS, FEATURE_COLS, FEATURE_LABELS
 # ---------------------------------------------------------------------------
 # Page config
 # ---------------------------------------------------------------------------
-st.set_page_config(page_title="Ch 62: Capstone Project", layout="wide")
 df = load_data()
 fdf = sidebar_filters(df)
 
 chapter_header(62, "Capstone Project", part="XV")
 
+st.markdown(
+    "Over the past 61 chapters, we have built up a toolkit: descriptive statistics, "
+    "visualizations, hypothesis tests, regression, classification, clustering, time series "
+    "forecasting, neural networks, Bayesian inference, anomaly detection, and causal "
+    "reasoning. Each chapter introduced one tool in isolation. That is like learning to "
+    "use a hammer, a saw, and a level separately -- useful, but nobody hires a carpenter "
+    "who has never actually built a table."
+)
+st.markdown(
+    "This chapter is where we build the table. Three complete projects, each one a "
+    "realistic end-to-end data science workflow using our 105,264 hourly weather readings "
+    "from 6 cities. The question is not 'can you run a Random Forest?' -- you proved that "
+    "in Chapter 46. The question is: can you pick the right tool for the right problem, "
+    "prepare data correctly, establish baselines, evaluate honestly, and interpret results "
+    "in a way that would survive a skeptical colleague's questions?"
+)
+
 concept_box(
-    "End-to-End Data Science Workflow",
-    "We've spent 61 chapters learning every tool in the data science toolkit. Now it's "
-    "time to actually use them all at once, which is roughly the difference between learning "
-    "to juggle individual balls and being asked to juggle while riding a unicycle.<br><br>"
-    "Each project below walks through the <b>complete data science pipeline</b>:<br>"
-    "1. <b>Problem definition</b> -- what are we actually trying to figure out, and why should anyone care?<br>"
-    "2. <b>Data exploration</b> -- staring at the data until it confesses its secrets<br>"
-    "3. <b>Model building</b> -- the part everyone thinks is the whole job<br>"
-    "4. <b>Evaluation</b> -- the part that actually IS the whole job<br>"
-    "5. <b>Conclusions</b> -- what we learned and what we're still confused about",
+    "The Data Science Pipeline (For Real This Time)",
+    "Every project below follows the same pipeline, but the emphasis shifts depending "
+    "on the problem:<br><br>"
+    "1. <b>Problem definition</b> -- what exactly are we predicting, and what would a "
+    "useful answer look like? For the city classifier, 'useful' means better than random "
+    "guessing (16.7% for 6 cities). For the temperature forecast, 'useful' means better "
+    "than 'tomorrow equals today.'<br><br>"
+    "2. <b>Data exploration</b> -- what does the data actually look like? We have ~17,500 "
+    "hourly readings per city. Are the city distributions different enough to classify? "
+    "Is temperature autocorrelated enough to forecast?<br><br>"
+    "3. <b>Model building</b> -- this is the part everyone fixates on, and it is maybe "
+    "20% of the actual work. Choosing features and establishing baselines matters far more "
+    "than choosing between model architectures.<br><br>"
+    "4. <b>Evaluation</b> -- this is the part that separates real data science from "
+    "cargo-cult data science. Not just 'what is the accuracy?' but 'what kinds of errors "
+    "does the model make, and do those errors make sense physically?'<br><br>"
+    "5. <b>Interpretation</b> -- what did we learn about weather, not just about our model? "
+    "If the city classifier confuses Dallas and Austin but never Dallas and LA, that tells "
+    "us something real about climate geography.",
 )
 
 # ---------------------------------------------------------------------------
@@ -70,20 +95,35 @@ st.divider()
 if project == "Project 1: Best City Classifier":
     st.header("Project 1: Best City Classifier")
     st.markdown(
-        "**Goal**: Here's a fun question -- if I hand you a weather reading (temperature, "
-        "humidity, wind speed, pressure) with the city label stripped off, can you figure out "
-        "which city it came from? This is secretly a deep question about how distinctive "
-        "different climates really are. Let's build a full ML pipeline to find out."
+        "Here is the setup. I hand you a single weather reading: temperature = 31.2 degrees C, "
+        "relative humidity = 78%, wind speed = 8.4 km/h, surface pressure = 1012.3 hPa. "
+        "The city label has been stripped off. Which of our 6 cities -- Dallas, San Antonio, "
+        "Houston, Austin, NYC, or Los Angeles -- produced this reading?"
+    )
+    st.markdown(
+        "This is not just a fun game. It is a deep question about **climate fingerprints**. "
+        "If a classifier can reliably identify a city from a single hour's weather, that means "
+        "the cities have genuinely distinctive climate signatures. If it cannot, it means the "
+        "cities' weather distributions overlap too much for any algorithm to distinguish. "
+        "Either answer is interesting."
+    )
+    st.markdown(
+        "My prediction before we start: the classifier will do well for LA (Mediterranean "
+        "climate, low humidity, mild temperatures year-round) and NYC (colder winters, "
+        "moderate humidity) but struggle to distinguish the Texas cities from each other, "
+        "because Dallas, Austin, San Antonio, and Houston all share roughly similar "
+        "subtropical patterns. Let us see if the data agrees."
     )
 
     # --- Step 1: Data Exploration ---
     st.subheader("Step 1: Data Exploration")
 
     st.markdown(
-        "Before we throw algorithms at the problem, we should do the thing that separates "
-        "good data scientists from people who just import sklearn and pray: actually look "
-        "at our data. How do these cities differ across weather features? Are there obvious "
-        "signatures, or is this going to be hard?"
+        "Before we train anything, we need to answer a basic question: **how different are "
+        "these cities, really?** If all 6 cities have identical temperature distributions, "
+        "no classifier in the world can tell them apart -- you cannot extract signal that "
+        "does not exist. Conversely, if LA's humidity sits at 60% while Houston's sits at "
+        "75%, that 15-percentage-point gap is free information the classifier can use."
     )
 
     # Per-city summary
@@ -104,6 +144,14 @@ if project == "Project 1: Best City Classifier":
 
     if summary_rows:
         st.dataframe(pd.DataFrame(summary_rows), use_container_width=True, hide_index=True)
+
+    st.markdown(
+        "Look at the table carefully. Where do you see the biggest differences? NYC's mean "
+        "temperature is probably several degrees below the Texas cities. LA's humidity is "
+        "likely lower than Houston's. Surface pressure varies with altitude -- cities at "
+        "different elevations will have different baseline pressures. Each of these gaps is "
+        "a 'handle' the classifier can grab."
+    )
 
     # Feature distributions
     fig_dist = make_subplots(rows=2, cols=2, subplot_titles=[FEATURE_LABELS[f] for f in FEATURE_COLS])
@@ -127,17 +175,29 @@ if project == "Project 1: Best City Classifier":
     st.plotly_chart(fig_dist, use_container_width=True)
 
     insight_box(
-        "This is the key intuition: wherever you see city distributions that barely overlap, "
-        "you've found a feature the classifier can exploit. Wherever distributions pile on "
-        "top of each other like a rugby scrum, that feature is basically useless for telling "
-        "cities apart. The model will figure this out too, but you should figure it out first -- "
-        "because if the model disagrees with your eyes, someone made a mistake."
+        "The histograms tell the real story. Wherever you see city distributions that are "
+        "clearly separated -- peaks sitting in different places, minimal overlap -- that feature "
+        "is gold for the classifier. Wherever the histograms pile on top of each other, that "
+        "feature is nearly useless for distinguishing cities. Pay special attention to surface "
+        "pressure: if some cities sit at different altitudes, their pressure distributions "
+        "might barely overlap at all, handing the classifier an almost-free feature. "
+        "Temperature distributions, by contrast, probably overlap heavily between the Texas "
+        "cities because they all experience similar summers and winters."
     )
 
     st.divider()
 
     # --- Step 2: Data Preparation ---
     st.subheader("Step 2: Data Preparation")
+
+    st.markdown(
+        "Now we set up the ML pipeline. Two decisions matter here: **which features to include** "
+        "and **whether to standardize**. Standardization (subtracting the mean, dividing by "
+        "standard deviation) matters because some algorithms -- logistic regression in particular "
+        "-- are sensitive to feature scales. Temperature ranges from maybe -5 to 40 degrees C. "
+        "Pressure ranges from 990 to 1030 hPa. Without standardization, the pressure feature "
+        "dominates purely because its numbers are bigger, not because it is more informative."
+    )
 
     col_prep1, col_prep2 = st.columns(2)
     with col_prep1:
@@ -164,16 +224,32 @@ if project == "Project 1: Best City Classifier":
     st.markdown(f"**Features**: {', '.join([FEATURE_LABELS.get(f, f) for f in selected_features])}")
     st.markdown(f"**Classes**: {', '.join(le.classes_)}")
 
+    st.markdown(
+        "Try an experiment: deselect all features except temperature and see what happens "
+        "to the accuracy below. Then try pressure alone. Then all four features together. "
+        "The gaps in performance tell you which features carry the most distinctive city "
+        "information."
+    )
+
     st.divider()
 
     # --- Step 3: Model Comparison ---
     st.subheader("Step 3: Model Training and Comparison")
 
     st.markdown(
-        "Now for the horse race. We'll train three classifiers of increasing sophistication "
-        "and see which one earns its complexity budget. If the simple model does just as well "
-        "as the fancy one, Occam's Razor says we should prefer it -- and also that we wasted "
-        "a bunch of compute on the fancy one, but at least we learned something."
+        "We are going to train three classifiers of increasing complexity. The point is not "
+        "just to find the best one -- it is to see whether the added complexity buys us "
+        "anything. If a logistic regression (essentially drawing straight-line boundaries "
+        "between cities in feature space) achieves 85% accuracy, and a Random Forest "
+        "(100 decision trees voting together) achieves 86%, that extra 1% probably is not "
+        "worth the added complexity, training time, and interpretability cost."
+    )
+    st.markdown(
+        "But if the gap is 65% vs 85%, that tells you something important: the decision "
+        "boundaries between cities are genuinely nonlinear. A city might be identifiable not "
+        "by any single feature but by the *combination* -- for example, Houston's signature "
+        "might be high temperature AND high humidity AND moderate pressure, and only a model "
+        "that can capture interactions will detect that pattern."
     )
 
     @st.cache_data(show_spinner="Training models...")
@@ -220,10 +296,26 @@ if project == "Project 1: Best City Classifier":
     apply_common_layout(fig_acc, title="Model Accuracy Comparison", height=400)
     st.plotly_chart(fig_acc, use_container_width=True)
 
+    st.markdown(
+        "Look at the actual numbers. Is the Random Forest meaningfully better, or are all "
+        "three models clustered within a few percentage points? If they are all around 85-90%, "
+        "that tells you the problem is 'easy' -- the city signatures are strong enough that "
+        "even simple models can detect them. If there is a big spread, the extra complexity "
+        "is capturing real nonlinear structure."
+    )
+
     st.divider()
 
     # --- Step 4: Detailed Evaluation ---
     st.subheader("Step 4: Detailed Evaluation")
+
+    st.markdown(
+        "Overall accuracy is a useful headline number, but it hides the interesting details. "
+        "Which cities does the model confuse? A model that is 88% accurate overall but gets "
+        "LA right 99% of the time while confusing Dallas and Austin 40% of the time is telling "
+        "you something important about climate similarity -- and about the limits of what "
+        "weather features alone can distinguish."
+    )
 
     best_model = max(results, key=lambda k: results[k]["accuracy"])
     st.markdown(f"**Best model: {best_model}** (accuracy: {results[best_model]['accuracy']:.1%})")
@@ -232,6 +324,15 @@ if project == "Project 1: Best City Classifier":
     fig_cm = plot_confusion_matrix(results[best_model]["cm"], le.classes_.tolist())
     fig_cm.update_layout(title=f"Confusion Matrix: {best_model}")
     st.plotly_chart(fig_cm, use_container_width=True)
+
+    st.markdown(
+        "The confusion matrix is the most informative graphic on this page. Read it row by "
+        "row: each row is a true city, each column is what the model predicted. The diagonal "
+        "shows correct classifications. Off-diagonal entries show confusions. **Which city "
+        "pairs get confused most often?** I would bet they are geographically or climatically "
+        "similar -- Dallas and Austin (both inland Texas), or Dallas and San Antonio. If the "
+        "model ever confuses NYC with Houston, something is seriously wrong."
+    )
 
     # Per-class metrics
     report = results[best_model]["report"]
@@ -246,6 +347,15 @@ if project == "Project 1: Best City Classifier":
                 "Support": int(report[cls]["support"]),
             })
     st.dataframe(pd.DataFrame(class_metrics), use_container_width=True, hide_index=True)
+
+    st.markdown(
+        "**Precision** answers: 'When the model says Houston, how often is it actually "
+        "Houston?' **Recall** answers: 'Of all the actual Houston readings, what fraction "
+        "did the model catch?' If a city has high precision but low recall, the model is "
+        "conservative -- it only calls something Houston when it is very sure, but it misses "
+        "a lot of Houston readings. If precision is low but recall is high, the model is "
+        "trigger-happy -- it labels too many things as Houston."
+    )
 
     # Feature importance (Random Forest)
     if "Random Forest" in results:
@@ -265,13 +375,15 @@ if project == "Project 1: Best City Classifier":
         st.plotly_chart(fig_imp, use_container_width=True)
 
     insight_box(
-        "The Random Forest typically wins this contest, and the reason is genuinely interesting: "
-        "it can capture non-linear interactions between features that logistic regression treats "
-        "as invisible. A city might have mild temperatures AND high humidity AND low pressure -- "
-        "it's the combination that's distinctive, not any single reading. Meanwhile, the confusion "
-        "matrix tells you which city pairs the model keeps mixing up, and I'd bet a nontrivial "
-        "amount that they're geographically close. If your model confuses Phoenix and Miami, "
-        "something has gone very wrong."
+        "The feature importance chart reveals which weather variables carry the most "
+        "distinctive city information. If surface pressure dominates, that is likely because "
+        "our cities sit at different elevations -- LA near sea level, others at various inland "
+        "altitudes. If humidity is highly important, it is probably separating the humid "
+        "subtropical cities (Houston) from drier ones (LA). Temperature is often less useful "
+        "than you would expect, because all our cities experience similar seasonal ranges -- "
+        "a 30 degrees C reading could come from any of them in summer. The model has learned "
+        "what meteorologists already know: climate is about the full profile, not any single "
+        "variable."
     )
 
     # Code
@@ -311,15 +423,37 @@ print(classification_report(y_test, y_pred, target_names=le.classes_))
 elif project == "Project 2: Temperature Forecast":
     st.header("Project 2: Temperature Forecast")
     st.markdown(
-        "**Goal**: The oldest question in weather: what will the temperature be tomorrow? "
-        "This sounds simple until you try it. We'll start with the dumbest possible approach "
-        "(\"tomorrow will be like today\"), then see how much improvement we can buy with actual "
-        "machine learning. The gap between the dumb approach and the smart one is, in some deep "
-        "sense, a measure of how predictable weather actually is."
+        "Here is the oldest question in meteorology, stripped down to its essentials: "
+        "**what will the temperature be tomorrow?**"
+    )
+    st.markdown(
+        "We have ~730 days of data per city (about 2 years of hourly readings, which we "
+        "will aggregate to daily averages). We will use past temperatures, humidity, wind, "
+        "pressure, and rolling statistics as inputs, and try to predict the next day's "
+        "average temperature. This is a regression problem, and unlike the classification "
+        "project, it comes with a built-in sanity check that is embarrassingly hard to beat."
+    )
+    st.markdown(
+        "That sanity check is the **persistence forecast**: 'Tomorrow's temperature will "
+        "be the same as today's.' This sounds absurdly lazy. But weather has enormous "
+        "day-to-day autocorrelation -- if it is 25 degrees C today, there is a very good "
+        "chance it will be somewhere between 23 and 27 degrees C tomorrow. The persistence "
+        "forecast exploits this autocorrelation for free, without any model at all. If our "
+        "fancy gradient boosting cannot beat 'same as today,' we have wasted our time."
     )
 
     # --- Step 1: Feature Engineering ---
     st.subheader("Step 1: Problem Setup and Feature Engineering")
+
+    st.markdown(
+        "**Select a city** below and watch how the feature engineering works. We create "
+        "**lag features** (yesterday's temperature, the temperature 2 days ago, 3 days ago, "
+        "a week ago), **rolling statistics** (the 7-day rolling mean and standard deviation), "
+        "and **calendar features** (month, day of year) that encode seasonality. Each of "
+        "these gives the model a different type of information: lags capture short-term "
+        "persistence, rolling stats capture recent trends, and calendar features capture "
+        "the long-term seasonal cycle."
+    )
 
     fc_city = st.selectbox("City", CITY_LIST, key="cap_fc_city")
 
@@ -372,6 +506,15 @@ elif project == "Project 2: Temperature Forecast":
         st.warning("Select at least one feature.")
         st.stop()
 
+    st.markdown(
+        "The feature preview table below shows the first 10 rows. Notice how each row "
+        "contains today's weather information (the lag features) and tomorrow's actual "
+        "temperature (the target). This is the fundamental structure of a supervised "
+        "forecasting problem: use the past to predict the future, but be very careful "
+        "not to accidentally include future information in the features (that is called "
+        "**data leakage**, and it is the most common way to get unrealistically good results)."
+    )
+
     st.markdown("#### Feature Preview")
     st.dataframe(daily[["date"] + selected_feats + ["target_temp"]].head(10),
                  use_container_width=True, hide_index=True)
@@ -382,14 +525,22 @@ elif project == "Project 2: Temperature Forecast":
     st.subheader("Step 2: Baseline Models")
 
     st.markdown(
-        "Here is the most important step in any forecasting project, and the one most people "
-        "skip: establishing baselines. If you can't beat a trivially simple method, your "
-        "fancy model is adding complexity without value -- which is, I would argue, the "
-        "central sin of applied machine learning.\n\n"
-        "- **Persistence**: \"Tomorrow will be the same as today.\" This is the laziest "
-        "possible forecast, and it's shockingly hard to beat for short horizons.\n"
-        "- **Climatology**: \"Tomorrow will be the historical average for this day of year.\" "
-        "This captures seasonality but ignores what's actually happening right now."
+        "This is the single most important step in the entire project, and the one most "
+        "people skip. Before training any ML model, we establish two baselines that set the "
+        "floor for 'acceptable performance':"
+    )
+    st.markdown(
+        "- **Persistence**: 'Tomorrow will be the same as today.' If today is 25.3 degrees C, "
+        "predict 25.3 degrees C for tomorrow. This exploits the massive autocorrelation in "
+        "daily temperatures.\n"
+        "- **Climatology**: 'Tomorrow will be the historical average for that day of year.' "
+        "If day 180 (late June) has historically averaged 33.1 degrees C, predict 33.1. "
+        "This exploits seasonality but ignores what is actually happening right now."
+    )
+    st.markdown(
+        "These two baselines represent complementary strategies: persistence captures "
+        "short-term continuity, climatology captures long-term patterns. A good ML model "
+        "should capture *both* -- and ideally learn the interactions between them."
     )
 
     # Split chronologically
@@ -416,10 +567,27 @@ elif project == "Project 2: Temperature Forecast":
             "R2": r2_score(valid["target_temp"], valid[pred_col]),
         }
 
+    st.markdown(
+        f"**Persistence baseline RMSE**: {baselines['Persistence']['RMSE']:.2f} degrees C. "
+        f"That is the number to beat. If your gradient boosting model with 100 trees and "
+        f"8 carefully engineered features cannot do better than 'same as today,' the model "
+        f"is adding complexity without value."
+    )
+
     st.divider()
 
     # --- Step 3: ML Models ---
     st.subheader("Step 3: Machine Learning Models")
+
+    st.markdown(
+        "Now we train two actual models -- linear regression and gradient boosting -- and "
+        "compare them against the baselines. **Linear regression** fits a weighted sum of "
+        "the features: 'tomorrow = 0.8 * today + 0.1 * last_week + 0.05 * month + ...' "
+        "This captures the basic idea that tomorrow depends mostly on today, with some "
+        "seasonal adjustment. **Gradient boosting** builds 100 sequential decision trees, "
+        "each one correcting the errors of the previous ones. It can capture nonlinear "
+        "relationships that linear regression misses."
+    )
 
     X_train = train_df[selected_feats]
     y_train = train_df["target_temp"]
@@ -458,6 +626,17 @@ elif project == "Project 2: Temperature Forecast":
     results_df.index.name = "Model"
     st.dataframe(results_df, use_container_width=True)
 
+    st.markdown(
+        "Read the results table carefully. Three things to check:\n"
+        "1. **Do the ML models beat persistence?** If not, the features are not adding information "
+        "beyond 'same as today.'\n"
+        "2. **How big is the gap?** Going from RMSE = 3.5 to 3.2 degrees C is a 9% improvement. "
+        "Going from 3.5 to 1.5 would be transformative. The size of the gap tells you how much "
+        "predictable signal exists beyond simple autocorrelation.\n"
+        "3. **Does gradient boosting beat linear regression?** If not, the temperature-feature "
+        "relationship is approximately linear, and the extra complexity is wasted."
+    )
+
     # Visualise
     fig_models = go.Figure()
     model_names = list(all_results.keys())
@@ -476,6 +655,15 @@ elif project == "Project 2: Temperature Forecast":
 
     # --- Step 4: Forecast Visualisation ---
     st.subheader("Step 4: Forecast Visualisation")
+
+    st.markdown(
+        "Numbers in a table are useful, but the forecast plot below shows you what good "
+        "and bad predictions actually look like. The solid line is actual temperature. The "
+        "dotted red line is the ML model's forecast. The dashed gray line is the persistence "
+        "baseline. Watch for places where the ML model clearly outperforms persistence -- "
+        "those are moments when the model successfully predicted a temperature *change* that "
+        "'same as today' could not."
+    )
 
     best_ml = min(ml_results, key=lambda k: ml_results[k]["RMSE"])
     best_preds = ml_results[best_ml]["predictions"]
@@ -503,6 +691,16 @@ elif project == "Project 2: Temperature Forecast":
     st.plotly_chart(fig_fc, use_container_width=True)
 
     # Residual analysis
+    st.markdown(
+        "Now the residual analysis -- this is where we check whether the model has any "
+        "systematic blind spots. The residual is actual minus predicted. If the model is "
+        "working well, the residual histogram should look like a bell curve centered at zero "
+        "(no systematic bias, errors are random). The residuals-over-time plot should look "
+        "like random scatter around zero. If you see a seasonal pattern in the residuals -- "
+        "say, the model consistently underpredicts in summer -- that is the model leaving "
+        "predictable signal on the table, and more features or a different model might help."
+    )
+
     residuals = test_df["target_temp"].values - best_preds
     col_r1, col_r2 = st.columns(2)
     with col_r1:
@@ -524,13 +722,15 @@ elif project == "Project 2: Temperature Forecast":
         st.plotly_chart(fig_resid_ts, use_container_width=True)
 
     insight_box(
-        f"The {best_ml} model achieves RMSE of {ml_results[best_ml]['RMSE']:.2f} deg C, "
-        f"beating the persistence baseline ({baselines['Persistence']['RMSE']:.2f} deg C). "
-        "That gap is the value added by actually doing data science instead of just saying "
-        "\"eh, same as today.\" But notice how much of the work is already done by the naive "
-        "approach -- weather has enormous autocorrelation, so \"tomorrow equals today\" gets "
-        "you surprisingly far. The residual plots should look like random noise centered at "
-        "zero; if you see patterns, the model is leaving predictable signal on the table."
+        f"The {best_ml} model achieves RMSE of {ml_results[best_ml]['RMSE']:.2f} degrees C, "
+        f"compared to the persistence baseline of {baselines['Persistence']['RMSE']:.2f} degrees C. "
+        "That difference is the value added by ML -- the amount of predictable signal that "
+        "exists in the lag features, rolling statistics, and seasonal patterns beyond simple "
+        "autocorrelation. Notice how much of the heavy lifting is already done by the persistence "
+        "baseline: weather is so autocorrelated that 'same as today' is an extremely competitive "
+        "starting point. The ML model's job is to capture the *residual* structure -- the part "
+        "that changes from day to day in a predictable way. That is a much harder task than "
+        "predicting the level."
     )
 
     code_example("""
@@ -568,17 +768,37 @@ print(f"RMSE: {rmse:.2f} deg C")
 elif project == "Project 3: Weather Pattern Discovery":
     st.header("Project 3: Weather Pattern Discovery")
     st.markdown(
-        "**Goal**: This project asks a fundamentally different kind of question. Instead of "
-        "\"given inputs X, predict label Y,\" we're asking: \"what natural groupings exist in "
-        "this data that we didn't already know about?\" This is unsupervised learning, and it's "
-        "both more exciting and more treacherous than the supervised kind -- more exciting "
-        "because you might discover something genuinely new, more treacherous because there's "
-        "no answer key to check against. Do the clusters correspond to real meteorological "
-        "phenomena, or did we just find noise that looks organized? Let's find out."
+        "The first two projects were **supervised**: we had a known target (city label, "
+        "tomorrow's temperature) and we measured success by how well we predicted it. This "
+        "project is fundamentally different. We are going to hand the algorithm 15,000 "
+        "weather readings -- each described by 4 numbers (temperature, humidity, wind, "
+        "pressure) -- and ask: **what natural groupings exist in this data?**"
+    )
+    st.markdown(
+        "We do not tell the algorithm how many groups to find, or what they should look "
+        "like. We do not give it city labels or season labels. It just gets the raw numbers. "
+        "The question is whether the structure it discovers corresponds to anything "
+        "meteorologically meaningful."
+    )
+    st.markdown(
+        "This is both more exciting and more dangerous than supervised learning. More "
+        "exciting because we might discover weather regimes that we did not know to look "
+        "for. More dangerous because there is no answer key -- the algorithm will always "
+        "find clusters, even in pure random noise. Our job is to figure out whether the "
+        "clusters are real or artifacts."
     )
 
     # --- Step 1: Data Preparation ---
     st.subheader("Step 1: Data Preparation for Clustering")
+
+    st.markdown(
+        "We standardize all 4 features before clustering. This is critical for K-Means "
+        "because it measures distances in feature space. Without standardization, temperature "
+        "(range: maybe -5 to 40 degrees C, span of 45) and pressure (range: 990 to 1030 hPa, "
+        "span of 40) have similar numerical ranges, but humidity (0 to 100%) has a much "
+        "larger numerical span, so it would dominate the distance calculations. "
+        "Standardization gives each feature an equal vote."
+    )
 
     cluster_data = fdf[FEATURE_COLS + ["city", "season", "month", "hour"]].dropna().copy()
 
@@ -591,6 +811,14 @@ elif project == "Project 3: Weather Pattern Discovery":
     # Standardise
     scaler = StandardScaler()
     X_scaled = scaler.fit_transform(cluster_data[FEATURE_COLS])
+
+    st.markdown(
+        "The correlation matrix below shows how the 4 features relate to each other. "
+        "Strong correlations (dark red or dark blue) mean two features carry similar "
+        "information. If temperature and humidity are highly correlated (they often are -- "
+        "warm air holds more moisture), the clusters will be driven partly by this shared "
+        "variation rather than by independent information from each feature."
+    )
 
     # Feature correlations
     corr = cluster_data[FEATURE_COLS].corr()
@@ -607,6 +835,21 @@ elif project == "Project 3: Weather Pattern Discovery":
 
     # --- Step 2: Finding Optimal K ---
     st.subheader("Step 2: Finding the Optimal Number of Clusters")
+
+    st.markdown(
+        "K-Means requires you to choose the number of clusters (k) in advance. This is "
+        "the algorithm's biggest limitation: it cannot tell you how many natural groups "
+        "exist. The **elbow method** helps: we run K-Means for k=2 through k=10 and plot "
+        "the total within-cluster variance (inertia) for each. As k increases, inertia "
+        "always decreases -- more clusters means tighter groups. But at some point, adding "
+        "another cluster buys very little improvement. That 'bend' in the curve suggests "
+        "the natural number of groups."
+    )
+    st.markdown(
+        "For our weather data, I would expect the elbow around k=3 to k=5. Why? Because "
+        "the dominant structure is probably seasonal (summer vs winter vs shoulder seasons) "
+        "crossed with geographic (coastal vs inland), which gives maybe 4-6 natural regimes."
+    )
 
     @st.cache_data(show_spinner="Computing elbow curve...")
     def compute_elbow(X, max_k=10):
@@ -631,6 +874,15 @@ elif project == "Project 3: Weather Pattern Discovery":
     apply_common_layout(fig_elbow, title="Elbow Method for Optimal K", height=400)
     st.plotly_chart(fig_elbow, use_container_width=True)
 
+    st.markdown(
+        "**Use the slider below** to choose k. Start with the elbow point, then try k-1 "
+        "and k+1 to see how the clusters split or merge. If going from k=4 to k=5 creates "
+        "a new cluster that looks meaningfully different from the others (say, a 'cold and "
+        "windy' regime that was previously merged with 'cold and calm'), the extra cluster "
+        "is probably real. If the new cluster just splits an existing one roughly in half "
+        "with no clear physical interpretation, you have probably gone too far."
+    )
+
     n_clusters = st.slider("Number of clusters", 2, 10, 4, key="cap_k")
 
     st.divider()
@@ -653,6 +905,15 @@ elif project == "Project 3: Weather Pattern Discovery":
     X_pca = pca.fit_transform(X_scaled)
     cluster_data["PC1"] = X_pca[:, 0]
     cluster_data["PC2"] = X_pca[:, 1]
+
+    st.markdown(
+        "The PCA plot below projects our 4-dimensional weather data onto 2 dimensions for "
+        "visualization. Each point is one hourly weather reading, colored by its cluster "
+        "assignment. The black X markers show cluster centers. Well-separated clusters in "
+        "PCA space suggest genuinely distinct weather regimes. Overlapping clusters might "
+        "still be meaningful -- they could be separated along dimensions that PCA does not "
+        "emphasize -- but heavy overlap is a warning sign."
+    )
 
     cluster_colors = ["#E63946", "#2A9D8F", "#F4A261", "#7209B7",
                       "#264653", "#FB8500", "#B5179E", "#0077B6",
@@ -691,10 +952,16 @@ elif project == "Project 3: Weather Pattern Discovery":
     st.subheader("Step 4: Cluster Interpretation")
 
     st.markdown(
-        "Now the hard part. K-Means will always give you clusters -- it'll happily partition "
-        "random noise into tidy groups and feel very proud of itself. The question is whether "
-        "these clusters mean anything. Let's look at each cluster's weather profile and see if "
-        "they correspond to patterns a meteorologist would recognize."
+        "This is the hardest and most important part of any unsupervised analysis. K-Means "
+        "will always partition data into k groups -- it will happily cluster pure random "
+        "noise and report tidy results. The question is not 'did the algorithm find clusters?' "
+        "(it always will) but 'do the clusters mean anything?'"
+    )
+    st.markdown(
+        "Below we examine each cluster's weather profile: what is the average temperature, "
+        "humidity, wind, and pressure? If one cluster is 'hot, humid, and calm' and another "
+        "is 'cold, dry, and windy,' those sound like real weather regimes. If two clusters "
+        "have nearly identical profiles, the algorithm is probably splitting noise."
     )
 
     # Cluster profiles
@@ -709,6 +976,13 @@ elif project == "Project 3: Weather Pattern Discovery":
 
     profile_df = pd.DataFrame(profile_rows)
     st.dataframe(profile_df, use_container_width=True, hide_index=True)
+
+    st.markdown(
+        "The radar chart below normalizes each feature to a 0-1 scale and shows each "
+        "cluster's profile as a polygon. Clusters with distinctive shapes -- one that is "
+        "all 'hot and humid' versus one that is all 'cold and dry' -- represent genuinely "
+        "different weather regimes. Similar shapes at different scales are less informative."
+    )
 
     # Radar chart
     fig_radar = go.Figure()
@@ -741,6 +1015,14 @@ elif project == "Project 3: Weather Pattern Discovery":
 
     # Cluster vs City
     st.markdown("#### Cluster Composition by City")
+    st.markdown(
+        "If the clusters are capturing real weather regimes, we would expect to see "
+        "non-uniform distributions across cities. For instance, a 'hot and humid' cluster "
+        "should be dominated by Houston and summer readings. A 'cold and dry' cluster "
+        "might be mostly NYC winter data. If every cluster has exactly 1/6 of each city, "
+        "the clusters are not capturing geographic climate differences."
+    )
+
     city_cluster = pd.crosstab(cluster_data["city"], cluster_data["cluster"], normalize="index")
     city_cluster.columns = [f"Cluster {c}" for c in city_cluster.columns]
 
@@ -756,6 +1038,13 @@ elif project == "Project 3: Weather Pattern Discovery":
 
     # Cluster vs Season
     st.markdown("#### Cluster Composition by Season")
+    st.markdown(
+        "Similarly, the seasonal breakdown reveals whether the clusters are picking up "
+        "temporal structure. A cluster that appears mostly in summer and another mostly in "
+        "winter is rediscovering seasonality from raw weather numbers -- without being told "
+        "what season any reading came from."
+    )
+
     season_cluster = pd.crosstab(cluster_data["season"], cluster_data["cluster"], normalize="index")
     season_cluster.columns = [f"Cluster {c}" for c in season_cluster.columns]
     season_cluster = season_cluster.reindex(["Winter", "Spring", "Summer", "Fall"])
@@ -772,6 +1061,14 @@ elif project == "Project 3: Weather Pattern Discovery":
 
     # Name the clusters
     st.markdown("#### Cluster Labels (Based on Feature Profiles)")
+    st.markdown(
+        "Below we auto-generate descriptive labels based on each cluster's average "
+        "weather values. These labels are heuristic -- based on whether the cluster's "
+        "mean falls in the top 30%, middle 40%, or bottom 30% of each feature's "
+        "distribution. They give a rough sense of what each cluster 'is,' but always "
+        "check the actual numbers in the profile table above."
+    )
+
     for k in range(n_clusters):
         mask = cluster_data["cluster"] == k
         cs = cluster_data[mask]
@@ -794,14 +1091,17 @@ elif project == "Project 3: Weather Pattern Discovery":
         st.markdown(label)
 
     insight_box(
-        "Here's what I find genuinely delightful about this: the clusters independently "
-        "rediscover weather regimes that meteorologists already know about. Hot-dry clusters "
-        "show up in summer inland cities. Mild-humid clusters dominate coastal areas and "
-        "transitional seasons. The algorithm has no idea what \"summer\" or \"coastal\" means -- "
-        "it's just looking at numbers -- but it converges on the same categories that humans "
-        "built from decades of domain expertise. This is either a reassuring validation of "
-        "unsupervised learning, or evidence that weather patterns are so strong they'd be "
-        "hard to miss. Probably both."
+        "Here is what I find genuinely remarkable about this analysis. The clustering "
+        "algorithm received nothing but 4 numbers per data point -- no city labels, no "
+        "season labels, no geographic information. And yet the clusters it discovers "
+        "independently correspond to weather regimes that meteorologists would recognize: "
+        "hot-humid summer, cold-dry winter, mild transitional seasons, coastal moderation. "
+        "The 'Cluster Composition by City' chart is the smoking gun: if Cluster 0 is "
+        "dominated by Houston summer readings and Cluster 2 by NYC winter readings, the "
+        "algorithm has rediscovered climate geography from raw thermometer data. This is "
+        "either a powerful validation of unsupervised learning or evidence that weather "
+        "patterns are so strong that any reasonable algorithm would find them. Either way, "
+        "the clusters are not arbitrary -- they reflect physical reality."
     )
 
     code_example("""
@@ -845,24 +1145,36 @@ st.divider()
 # Final Takeaways (shared)
 # ---------------------------------------------------------------------------
 takeaways([
-    "A real data science project is not a sequence of techniques -- it's a conversation with "
-    "your data where you keep asking questions and revising your understanding. The pipeline "
-    "(explore, preprocess, model, evaluate, interpret) is less a rigid procedure than a loop "
-    "you go around multiple times.",
-    "Always, always, always establish baselines before building complex models. If you can't "
-    "beat 'tomorrow equals today,' your fancy gradient boosting is adding complexity for "
-    "nothing. This is the data science equivalent of 'first, do no harm.'",
-    "Feature engineering -- lag features, rolling statistics, domain-specific transformations "
-    "-- is often where the real performance gains live. The choice of model matters less than "
-    "the quality of what you feed it.",
-    "Unsupervised methods are powerful precisely because they find structure you didn't "
-    "tell them to look for. But this means they can also find structure that isn't real. "
-    "Always validate clusters against domain knowledge.",
-    "Speaking of domain knowledge: meteorology (or whatever your application domain is) "
-    "is not optional. It's what lets you tell the difference between a real pattern and a "
-    "statistical mirage.",
-    "Comparing multiple models and methods isn't just good practice -- it's how you develop "
-    "calibrated intuitions about what kinds of problems benefit from what kinds of approaches.",
+    "The data science pipeline -- explore, prepare, model, evaluate, interpret -- is not "
+    "a linear sequence you walk through once. It is a loop. The evaluation step reveals "
+    "problems (model confuses Dallas and Austin), which sends you back to preparation "
+    "(add elevation as a feature?) or exploration (what makes Dallas and Austin so similar?). "
+    "Real projects go around this loop 5-10 times.",
+    "Always establish baselines before building complex models. The persistence forecast "
+    "('tomorrow equals today') is the temperature forecasting equivalent of 'first, do no "
+    "harm.' If your gradient boosting with 100 trees and 8 features cannot beat this trivial "
+    "baseline, it is adding complexity without value. In our dataset, the persistence RMSE "
+    "is typically around 2-4 degrees C depending on the city -- that is the bar.",
+    "Feature engineering -- lag features, rolling statistics, calendar encodings -- is where "
+    "the real performance gains live. The difference between a good model and a great model "
+    "is rarely the algorithm; it is what you feed it. In the temperature forecast project, "
+    "the 7-day rolling mean alone captures most of the seasonal structure.",
+    "Unsupervised methods always find structure -- that is literally what they are designed "
+    "to do. The hard part is determining whether the structure is real. For the clustering "
+    "project, we validated clusters against city labels and season labels that the algorithm "
+    "never saw. If the clusters had not aligned with these external variables, we would have "
+    "less confidence they were real. Always validate against domain knowledge.",
+    "The confusion matrix in the classification project and the residual analysis in the "
+    "forecasting project are not afterthoughts -- they are the most informative parts of "
+    "the entire analysis. They tell you not just how well the model works, but *where* "
+    "and *why* it fails. A model that confuses Dallas and Austin is telling you something "
+    "real about climate similarity. A model with seasonal residual patterns is telling you "
+    "it needs seasonal features.",
+    "Every tool we used in these projects -- Random Forests, gradient boosting, K-Means, "
+    "PCA, cross-tabulation, residual analysis -- was introduced in isolation in earlier "
+    "chapters. The skill of data science is not knowing how to use each tool; it is knowing "
+    "when to reach for which tool, and how to combine them into a coherent analysis that "
+    "answers a real question about the world.",
 ])
 
 st.divider()
@@ -870,32 +1182,44 @@ st.divider()
 st.markdown("""
 ### You Made It
 
-We started 62 chapters ago with histograms and means, and now we're building end-to-end ML
-pipelines, forecasting temperatures, and discovering hidden weather regimes with unsupervised
-learning. That's a genuinely large distance to have covered.
+Sixty-two chapters. We started with histograms and means -- literally just counting things
+and computing averages. Now we are building city classifiers from climate fingerprints,
+forecasting temperatures with gradient boosting, and discovering hidden weather regimes
+with unsupervised learning. That is a genuinely large distance to have covered.
 
-Here's what you've picked up along the way:
+Here is an incomplete inventory of what you now know:
 
-- **Statistical foundations**: distributions, inference, hypothesis testing -- the grammar
-  of making claims about data
-- **Visualization**: not just making charts, but making charts that actually reveal what's
-  going on rather than what you hoped was going on
-- **Machine learning**: classification, regression, clustering, dimensionality reduction --
-  the full supervised and unsupervised toolkit
-- **Time series**: forecasting, seasonality, trends -- because most real-world data has a
-  time axis and ignoring it is a rookie mistake
-- **Deep learning**: neural networks, autoencoders -- for when the problem is complex enough
-  to justify the complexity of the solution
-- **Bayesian methods**: Bayes' theorem, inference, probabilistic programming -- for when you
-  want to reason about uncertainty honestly instead of sweeping it under a p-value
-- **Anomaly detection**: statistical, tree-based, and neural approaches -- for finding the
-  weird stuff, which is often the interesting stuff
-- **Causal inference**: correlation vs causation, natural experiments -- for when you want
-  to actually understand why things happen, not just predict that they will
+- **Statistical foundations**: distributions, confidence intervals, hypothesis testing --
+  the grammar of making defensible claims about data. You know that a p-value of 0.03
+  does not mean there is a 3% chance the null is true, and you know why that distinction
+  matters.
+- **Visualization**: not just making charts, but making charts that reveal structure
+  rather than hide it. You have seen how a well-chosen histogram can tell you more than
+  a table of summary statistics, and how a poorly chosen visualization can actively mislead.
+- **Machine learning**: classification (Random Forests, logistic regression), regression
+  (linear, gradient boosting), dimensionality reduction (PCA), clustering (K-Means) --
+  the supervised and unsupervised toolkit. You understand the bias-variance tradeoff and
+  why adding model complexity does not always help.
+- **Time series**: forecasting, seasonality, autocorrelation, lag features -- because
+  weather data has a time axis and ignoring it is not just a rookie mistake, it is a
+  fundamental violation of the data's structure.
+- **Deep learning**: neural networks and autoencoders -- for problems where the
+  relationships are complex enough to justify the complexity of the solution, and for
+  anomaly detection through reconstruction error.
+- **Bayesian methods**: Bayes' theorem, prior and posterior distributions, probabilistic
+  reasoning -- for when you want to reason about uncertainty honestly rather than pretending
+  a point estimate tells the whole story.
+- **Anomaly detection**: Z-scores, Isolation Forest, autoencoders -- three fundamentally
+  different approaches to finding the weird stuff, which is often the most interesting stuff.
+- **Causal inference**: correlation versus causation, confounders, Simpson's paradox,
+  natural experiments, difference-in-differences -- for when you want to understand *why*
+  things happen, not just predict that they will.
 
-All of it illustrated with real weather data from 6 US cities, which turns out to be a
-surprisingly rich playground for data science concepts. Weather is messy, seasonal, spatial,
-multivariate, and endlessly interesting -- much like the field itself.
+All of it illustrated with real weather data from 6 US cities -- 105,264 hourly readings
+spanning 2 years. Weather turned out to be a surprisingly rich domain for data science:
+it is messy, seasonal, spatial, multivariate, autocorrelated, and full of both obvious
+patterns (summer is hot) and subtle structure (pressure changes precede wind changes).
+Much like data science itself.
 
 Now go build something.
 """)

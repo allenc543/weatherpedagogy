@@ -17,7 +17,6 @@ from utils.constants import CITY_LIST, CITY_COLORS, FEATURE_COLS, FEATURE_LABELS
 # ---------------------------------------------------------------------------
 # Page config
 # ---------------------------------------------------------------------------
-st.set_page_config(page_title="Ch 57: Statistical Anomaly Detection", layout="wide")
 df = load_data()
 fdf = sidebar_filters(df)
 
@@ -26,59 +25,100 @@ chapter_header(57, "Statistical Anomaly Detection", part="XIV")
 # ---------------------------------------------------------------------------
 # 1. Theory
 # ---------------------------------------------------------------------------
+st.markdown(
+    "Let me set up a specific problem. You are monitoring hourly weather data "
+    "from 6 US cities -- Dallas, Houston, Austin, San Antonio, NYC, and Los Angeles. "
+    "That is about 105,000 rows of temperature, humidity, wind speed, and pressure "
+    "readings, one per hour, for two years."
+)
+st.markdown(
+    "A reading comes in: **35 degrees C in New York City on January 15th at 2 PM.** "
+    "Is that weird? Your gut says yes -- obviously yes, that is summer weather in the "
+    "dead of winter. But 'my gut says yes' is not a statistical method. We need a "
+    "rigorous, automated way to answer the question 'is this data point weird?' for "
+    "every one of those 105,000 readings, across all four features, without a human "
+    "staring at each one."
+)
+st.markdown(
+    "That is anomaly detection. And the tricky part is defining 'weird' precisely "
+    "enough for a computer to compute it."
+)
+
 concept_box(
-    "What Is Anomaly Detection?",
-    "Anomaly detection is the art of answering the question: 'is this data point weird?' "
-    "Which sounds simple until you realize you need a rigorous definition of 'weird.' "
-    "Statistical methods handle this by learning what <b>normal</b> looks like from your data, "
-    "then flagging points that deviate significantly from that baseline.<br><br>"
-    "In weather data, anomalies are the interesting stuff:<br>"
-    "- <b>Heat waves</b>: unusually high temperatures for the season<br>"
-    "- <b>Cold snaps</b>: the time Dallas hit -15 C, which residents would enthusiastically "
-    "confirm was indeed weird<br>"
-    "- <b>Storms</b>: extreme wind speeds or sudden pressure drops<br><br>"
-    "The tricky part is that 'unusual' depends on context. 35 C in July is Tuesday. "
-    "35 C in January is a crisis.",
+    "Why We Care About Weather Anomalies",
+    "In our dataset, anomalies are the interesting stuff -- the events a meteorologist "
+    "would actually want to investigate:<br><br>"
+    "- <b>Heat waves</b>: Dallas hitting 42 degrees C in July (even for Texas, that is extreme)<br>"
+    "- <b>Cold snaps</b>: Dallas dropping to -15 degrees C in February 2021, which residents "
+    "would enthusiastically confirm was indeed unusual<br>"
+    "- <b>Storm signatures</b>: a sudden 20 hPa pressure drop in Houston over 6 hours, "
+    "paired with 80+ km/h winds<br>"
+    "- <b>Sensor errors</b>: a humidity reading of 0% in Houston (which is physically "
+    "implausible for a subtropical coastal city)<br><br>"
+    "The tricky part: 35 degrees C in Dallas in July is a normal Tuesday. 35 degrees C "
+    "in NYC in January is front-page news. The same number can be normal or anomalous "
+    "depending on <b>context</b> -- and we need our methods to handle that.",
 )
 
 st.markdown("### Two Classical Methods")
+st.markdown(
+    "There are two simple, well-understood approaches that have been used for decades. "
+    "They differ in a fundamental way: one uses the mean and standard deviation (which "
+    "are themselves affected by outliers), and the other uses quartiles (which are not). "
+    "Both have the same goal -- draw a boundary around 'normal' and flag anything "
+    "outside it."
+)
 
 col1, col2 = st.columns(2)
 
 with col1:
     concept_box(
         "Z-Score Method",
-        "Measures how many standard deviations a point is from the mean. "
-        "A point is anomalous if |z| > threshold (typically 2 or 3).<br><br>"
-        "The appeal is simplicity: you are literally just asking 'how far is this from average, "
-        "in units of typical spread?'<br><br>"
-        "<b>Pros</b>: Simple, intuitive, works well when your data is roughly normal.<br>"
-        "<b>Cons</b>: The mean and std are themselves influenced by outliers, which is a bit like "
-        "asking the suspects to serve on the jury. Also assumes normality.",
+        "Here is the idea in weather terms. Take all 17,500 hourly temperature readings "
+        "for Dallas. Compute the mean (say, 19.2 degrees C) and the standard deviation (say, "
+        "9.8 degrees C). Now for any single reading, ask: how many standard deviations is this "
+        "from the mean?<br><br>"
+        "A reading of 48.6 degrees C would be (48.6 - 19.2) / 9.8 = 3.0 standard deviations "
+        "above the mean. At a threshold of 3, that is flagged as an anomaly. A reading of "
+        "25 degrees C would be (25 - 19.2) / 9.8 = 0.6 -- perfectly normal.<br><br>"
+        "<b>The catch</b>: the mean and standard deviation are <em>themselves</em> influenced "
+        "by outliers. If Dallas had one freak reading of 60 degrees C, that would pull the mean "
+        "up and inflate the standard deviation, making future anomalies <em>harder</em> to "
+        "detect. You are asking the suspects to serve on the jury.<br><br>"
+        "<b>Pros</b>: Simple, intuitive, works well when data is roughly bell-shaped.<br>"
+        "<b>Cons</b>: Sensitive to the very outliers it is trying to detect. Assumes normality.",
     )
     formula_box(
         "Z-Score",
         r"z = \frac{x - \mu}{\sigma}",
         "A z-score of 3 means the point is 3 standard deviations from the mean -- "
-        "expected to happen about 0.3% of the time under normality.",
+        "expected to happen about 0.3% of the time under a normal distribution. "
+        "For Dallas temperature, that means roughly 50 out of 17,500 readings.",
     )
 
 with col2:
     concept_box(
         "IQR Method",
-        "Uses the interquartile range (Q3 - Q1) to define bounds. "
-        "Anomalies fall below Q1 - k*IQR or above Q3 + k*IQR (typically k=1.5).<br><br>"
-        "The key advantage: quartiles do not care about outliers. You could replace the most "
-        "extreme value with infinity and the IQR would not change. This makes the method "
-        "more robust when your data is contaminated.<br><br>"
+        "Same dataset, different approach. Sort all 17,500 Dallas temperature readings. "
+        "Find the 25th percentile (Q1, say 11.4 degrees C) and the 75th percentile (Q3, "
+        "say 27.1 degrees C). The interquartile range (IQR) is Q3 - Q1 = 15.7 degrees C. "
+        "That is the middle 50% of your data.<br><br>"
+        "Now define bounds: anything below Q1 - 1.5 * IQR = 11.4 - 23.6 = -12.2 degrees C "
+        "or above Q3 + 1.5 * IQR = 27.1 + 23.6 = 50.7 degrees C is an anomaly.<br><br>"
+        "The key advantage: <b>quartiles do not care about outliers.</b> You could replace "
+        "the single hottest reading with 1000 degrees C and the IQR would not budge -- "
+        "the 25th and 75th percentiles are set by the bulk of the data, not the extremes. "
+        "This is why statisticians call quartiles 'robust.'<br><br>"
         "<b>Pros</b>: Robust to outliers; no normality assumption needed.<br>"
-        "<b>Cons</b>: May miss subtle anomalies; the k=1.5 multiplier is essentially arbitrary.",
+        "<b>Cons</b>: May miss subtle anomalies; the k=1.5 multiplier is essentially "
+        "arbitrary (John Tukey picked it in 1977 and it stuck).",
     )
     formula_box(
         "IQR Bounds",
         r"\text{Lower} = Q_1 - k \cdot IQR, \quad \text{Upper} = Q_3 + k \cdot IQR",
         "With k=1.5, this corresponds roughly to 2.7 sigma for normal data. "
-        "John Tukey picked this value in 1977 and nobody has managed to improve on it much since.",
+        "For Dallas temperature, the lower bound might be around -12 degrees C and "
+        "the upper bound around 51 degrees C -- anything outside that range is flagged.",
     )
 
 st.divider()
@@ -87,6 +127,26 @@ st.divider()
 # 2. Interactive: Anomaly Detection on Time Series
 # ---------------------------------------------------------------------------
 st.subheader("Interactive: Detect Weather Anomalies")
+
+st.markdown(
+    "Now you get to try it. Pick a city and a weather feature, choose your detection "
+    "method, and watch the anomalies appear in real time. Here is what each control does:"
+)
+st.markdown(
+    "- **City**: Each city has a different climate, so the same threshold will find "
+    "different anomalies. LA's temperature barely varies; Dallas is a roller coaster.\n"
+    "- **Feature**: Temperature anomalies are heat waves and cold snaps. Pressure anomalies "
+    "are storm systems. Wind anomalies are gales. Humidity anomalies might be sensor errors "
+    "or genuinely unusual air masses.\n"
+    "- **Method**: Z-Score uses mean/std; IQR uses quartiles. Try both on the same data to "
+    "see where they agree and disagree.\n"
+    "- **Threshold slider**: Lower threshold = more anomalies flagged (more sensitive, but "
+    "more false alarms). Higher threshold = fewer anomalies (fewer false alarms, but you "
+    "might miss real events).\n"
+    "- **Contextual checkbox**: The most important control. Without it, the method uses "
+    "one set of bounds for the entire year. With it, bounds are computed per-month -- so "
+    "a 'hot' reading in January has a different threshold than a 'hot' reading in July."
+)
 
 col_ctrl, col_viz = st.columns([1, 3])
 
@@ -213,16 +273,24 @@ m3.metric("Anomaly Rate", f"{pct_anomalies:.2f}%")
 
 if contextual:
     insight_box(
-        "Contextual detection uses per-month statistics, which is crucial for weather data. "
-        "A 35 deg C reading in January is genuinely alarming; the same reading in July is just "
-        "Texas being Texas. Without context, you would either miss winter anomalies or flag "
-        "every summer day as unusual."
+        "You are now using per-month statistics, which is the right approach for weather "
+        "data. Look at what happens to the bounds -- they shift with the seasons. In July, "
+        "the upper bound for Dallas temperature might be 42 degrees C; in January, it might "
+        "be 22 degrees C. A reading of 35 degrees C would be perfectly normal in July but "
+        "would be flagged as a screaming anomaly in January. Without per-month context, "
+        "both readings get compared against the same year-round bounds, which means you "
+        "either miss winter anomalies or you flag every summer day. Toggle the contextual "
+        "checkbox off and watch the anomalies change -- that is the difference context makes."
     )
 else:
     insight_box(
-        "Global detection uses the overall distribution, which means it treats a July heatwave "
-        "and a January cold snap with the same yardstick. This can miss seasonally contextual "
-        "anomalies. Try enabling the 'Contextual (per-month)' checkbox to see the difference."
+        "Right now you are using global (year-round) bounds, which means a single threshold "
+        "for all 12 months. This works okay for features without strong seasonality (like "
+        "surface pressure), but it is a problem for temperature. A reading of 35 degrees C "
+        "is normal for Dallas in July but bizarre for January -- yet with global bounds, "
+        "both get the same treatment. Try enabling the 'Contextual (per-month)' checkbox "
+        "to see how the bounds adapt to seasonal patterns. You should see more targeted "
+        "anomaly detection, especially for temperature."
     )
 
 st.divider()
@@ -231,6 +299,13 @@ st.divider()
 # 3. Anomaly Distribution Analysis
 # ---------------------------------------------------------------------------
 st.subheader("Anomaly Distribution Analysis")
+
+st.markdown(
+    "Now that we have flagged some anomalies, the natural question is: *when* do they "
+    "happen? If anomalies cluster in certain months or at certain hours, that tells us "
+    "something about what is causing them. If heat-wave anomalies all appear in July-August, "
+    "that is real meteorology. If anomalies are uniformly scattered, they might be sensor noise."
+)
 
 if n_anomalies > 0:
     col_a, col_b = st.columns(2)
@@ -264,6 +339,13 @@ if n_anomalies > 0:
     # Classify anomalies
     st.markdown("#### Anomaly Classification")
 
+    st.markdown(
+        "Let us put names on what we found. For temperature, anomalies above the mean "
+        "are heat waves and those below are cold snaps. For pressure, low-pressure "
+        "anomalies look like storm systems and high-pressure anomalies suggest unusual "
+        "atmospheric blocking patterns."
+    )
+
     if feature_col == "temperature_c":
         overall_mean = city_data[feature_col].mean()
         heat_waves = anomalies[anomalies[feature_col] > overall_mean]
@@ -285,6 +367,11 @@ if n_anomalies > 0:
 
     # Show sample anomalies
     st.markdown("#### Sample Anomalous Readings")
+    st.markdown(
+        "Here are the actual data rows flagged as anomalies. Look at the values and "
+        "ask yourself: do these look genuinely unusual for this city? Check the bounds "
+        "columns -- anything outside those bounds got flagged."
+    )
     display_cols = ["datetime", "city", feature_col, "lower_bound", "upper_bound"]
     if feature_col == "temperature_c":
         display_cols += ["relative_humidity_pct", "wind_speed_kmh"]
@@ -303,8 +390,10 @@ st.divider()
 st.subheader("Method Comparison: Z-Score vs IQR")
 
 st.markdown(
-    "A reasonable question: if both methods detect anomalies, do they agree? "
-    "The answer is 'sometimes,' and the disagreements are instructive."
+    "A reasonable question: if both methods detect anomalies, do they agree? The answer "
+    "is 'sometimes,' and the disagreements are instructive. Let me show you. We will run "
+    "both methods on the same data with standard settings (Z-score threshold = 3, "
+    "IQR multiplier k = 1.5) and see which readings they agree on and which they fight about."
 )
 
 comp_city = ad_city
@@ -364,10 +453,15 @@ apply_common_layout(fig_comp, title="Z-Score vs IQR Bounds", height=400)
 st.plotly_chart(fig_comp, use_container_width=True)
 
 insight_box(
-    "The IQR method tends to be more conservative for symmetric distributions but can disagree "
-    "with Z-score for skewed data (like wind speed, which has a long right tail). "
-    "When both methods flag the same point, you can be fairly confident it is truly unusual. "
-    "When they disagree, it is worth investigating why."
+    "Look at where the vertical lines land. For symmetric, roughly bell-shaped data "
+    "(like temperature), the Z-score bounds (solid red) and IQR bounds (dashed purple) "
+    "land in similar places. But for skewed data -- try wind speed, which has a long "
+    "right tail because wind speeds cannot go below zero -- the bounds diverge. The IQR "
+    "method is more conservative on the right tail because quartiles are not pulled by "
+    "extreme values. When both methods flag the same reading (like a Dallas temperature "
+    "of -15 degrees C), you can be quite confident it is genuinely unusual. When they "
+    "disagree, investigate why -- it usually reveals something about the shape of your "
+    "data distribution."
 )
 
 st.divider()
@@ -407,35 +501,71 @@ st.divider()
 # 6. Quiz
 # ---------------------------------------------------------------------------
 quiz(
-    "A temperature of 35 deg C has a Z-score of 2.5 in the global distribution but "
-    "a Z-score of 0.5 for July. This is an example of:",
+    "A temperature reading of 35 degrees C in Dallas has a Z-score of 2.5 when computed "
+    "against the full-year distribution, but a Z-score of only 0.5 when computed against "
+    "July data alone. Using a threshold of 3, this reading is:",
     [
         "A global anomaly that is contextually normal",
         "A contextual anomaly that is globally normal",
         "An anomaly by both methods",
         "Not an anomaly by either method",
     ],
-    correct_idx=0,
-    explanation="35 deg C looks unusual compared to the overall distribution (z=2.5), but "
-                "it is perfectly normal for July (z=0.5). This is exactly why contextual "
-                "detection matters -- without it, you would flag every hot summer day.",
+    correct_idx=3,
+    explanation="Here is the key: with a threshold of 3, a Z-score of 2.5 does NOT "
+                "exceed the threshold, and 0.5 certainly does not. So this reading is "
+                "not flagged by either the global or the contextual method at that threshold. "
+                "It is a warm reading (2.5 sigma above the annual mean), but not extreme enough "
+                "to cross the z=3 line. If you lowered the threshold to 2, then it would be "
+                "flagged globally (2.5 > 2) but not contextually (0.5 < 2) -- making it a "
+                "'global anomaly that is contextually normal.' This is exactly why the threshold "
+                "setting matters so much.",
     key="ch57_quiz1",
 )
 
 quiz(
-    "Which method is more robust to outliers in the data?",
+    "Dallas has an extreme cold snap that drops temperatures to -18 degrees C. Which method "
+    "is more likely to correctly flag this as anomalous even if there are OTHER extreme "
+    "values in the dataset that inflate the spread?",
     [
-        "Z-Score -- because it uses the mean",
+        "Z-Score -- because it uses the mean, which is pulled toward extremes",
         "IQR -- because quartiles are resistant to extreme values",
         "Both are equally robust",
-        "Neither is robust to outliers",
+        "Neither can handle extreme values",
     ],
     correct_idx=1,
-    explanation="The IQR method uses quartiles, which are robust statistics -- they do not "
-                "budge when extreme values change. The Z-score uses mean and std, both of which "
-                "are pulled by outliers. It is one of those cases where the simpler method has "
-                "a real practical advantage.",
+    explanation="The IQR method uses the 25th and 75th percentiles, which are 'robust' "
+                "statistics -- they do not budge when extreme values change. If the dataset "
+                "has other extreme readings that inflate the standard deviation, the Z-score's "
+                "denominator gets larger, making the cold snap's Z-score *smaller* and potentially "
+                "causing it to be missed. Meanwhile, the IQR bounds stay anchored to the bulk "
+                "of the data. Imagine you have one reading of 60 degrees C from a sensor error "
+                "-- the Z-score method's sigma would increase, making -18 degrees C look less "
+                "extreme. The IQR method would not even notice the sensor error when computing "
+                "its bounds.",
     key="ch57_quiz2",
+)
+
+quiz(
+    "You run anomaly detection on Houston humidity with global (non-contextual) bounds and "
+    "find that 80% of the flagged anomalies occur in December-February. What is the most "
+    "likely explanation?",
+    [
+        "Houston has worse sensors in winter",
+        "Winter humidity in Houston is genuinely unusual relative to the year-round average, "
+        "but seasonal variation (not true anomalies) is causing the flags",
+        "The IQR method is broken for humidity data",
+        "Houston weather is more unpredictable in winter",
+    ],
+    correct_idx=1,
+    explanation="Houston is a humid subtropical city where summer humidity is very high. "
+                "When you compute year-round bounds, they are anchored by the high-humidity "
+                "summer months. Winter months, when Houston is naturally drier, fall outside "
+                "those bounds -- not because anything unusual is happening, but because the "
+                "global method does not account for normal seasonal variation. This is exactly "
+                "the problem that contextual (per-month) detection solves: by computing "
+                "separate bounds for each month, winter readings are compared to other winter "
+                "readings, not to summer.",
+    key="ch57_quiz3",
 )
 
 st.divider()
@@ -444,11 +574,20 @@ st.divider()
 # 7. Takeaways
 # ---------------------------------------------------------------------------
 takeaways([
-    "Z-score flags points far from the mean in standard deviation units -- intuitive but sensitive to the very outliers it is trying to detect.",
-    "IQR method uses quartiles and is robust to outliers, making it a better default when you do not trust your data to be clean.",
-    "Contextual anomaly detection accounts for expected variation (by season, time of day). Without context, you cannot distinguish 'unusual for January' from 'just summer.'",
-    "Heat waves, cold snaps, and storms appear as anomalies in temperature, pressure, or wind data -- the interesting stories in weather are often the anomalies.",
-    "Combining multiple methods increases confidence in detected anomalies. If two different approaches agree something is weird, it probably is.",
+    "Z-score measures 'how many standard deviations from the mean' -- for Dallas temperature, "
+    "a Z-score of 3 might mean the reading is about 30 degrees above or below average. "
+    "Simple and intuitive, but sensitive to the very outliers it is trying to detect.",
+    "IQR method uses quartiles (the 25th and 75th percentiles) and is immune to extreme "
+    "values. If you suspect your data has sensor errors or corrupted readings, IQR is the "
+    "safer default because those bad readings cannot pull the bounds.",
+    "Contextual detection is essential for seasonal data. Without it, every Houston summer "
+    "afternoon gets flagged as unusually humid, and every Dallas winter night gets flagged as "
+    "unusually cold -- neither of which is actually anomalous for the season.",
+    "When Z-score and IQR agree on an anomaly (like that -15 degrees C Dallas reading), "
+    "you can be especially confident. When they disagree, it usually means the data is "
+    "skewed, and you should investigate the distribution shape.",
+    "The anomaly rate should make domain sense. If your detector flags 20% of readings "
+    "as anomalous, either the climate has gone haywire or your threshold is too low.",
 ])
 
 navigation(

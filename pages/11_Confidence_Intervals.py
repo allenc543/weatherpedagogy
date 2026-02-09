@@ -17,7 +17,6 @@ from utils.constants import CITY_LIST, FEATURE_COLS, FEATURE_LABELS
 # ---------------------------------------------------------------------------
 # Page config
 # ---------------------------------------------------------------------------
-st.set_page_config(page_title="Ch 11: Confidence Intervals", layout="wide")
 df = load_data()
 fdf = sidebar_filters(df)
 

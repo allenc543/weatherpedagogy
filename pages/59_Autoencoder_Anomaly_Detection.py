@@ -19,7 +19,6 @@ from utils.constants import CITY_LIST, CITY_COLORS, FEATURE_COLS, FEATURE_LABELS
 # ---------------------------------------------------------------------------
 # Page config
 # ---------------------------------------------------------------------------
-st.set_page_config(page_title="Ch 59: Autoencoder Anomaly Detection", layout="wide")
 df = load_data()
 fdf = sidebar_filters(df)
 
@@ -28,50 +27,71 @@ chapter_header(59, "Autoencoder Anomaly Detection", part="XIV")
 # ---------------------------------------------------------------------------
 # 1. Theory
 # ---------------------------------------------------------------------------
+st.markdown(
+    "We now have two anomaly detection methods: Z-score (one feature at a time) and "
+    "Isolation Forest (all features, but using random splits). Both are powerful, but "
+    "neither one *learns* what normal weather actually looks like. Z-score just computes "
+    "a mean and standard deviation. Isolation Forest just measures how easy it is to "
+    "isolate a point. Neither builds an internal model of 'this is what Houston weather "
+    "is supposed to be.'"
+)
+st.markdown(
+    "What if we trained a neural network to do exactly that -- learn a compressed "
+    "representation of what normal weather looks like? Then when an abnormal reading "
+    "comes in, the network fails to reconstruct it, and that failure *is* the anomaly "
+    "signal."
+)
+st.markdown(
+    "That is the autoencoder approach, and the intuition is surprisingly simple."
+)
+
 concept_box(
-    "Autoencoders for Anomaly Detection",
-    "An <b>autoencoder</b> is a neural network with a very specific job: learn to copy its "
-    "input to its output. 'Wait,' you might say, 'that sounds trivially easy.' And it would "
-    "be, except we force the data through a <b>bottleneck</b> -- a narrow hidden layer that "
-    "can only represent a compressed version of the input.<br><br>"
-    "<b>The clever part</b>: train the autoencoder on <em>normal</em> data. It learns to "
-    "compress and reconstruct normal patterns efficiently. When an anomaly comes along -- "
-    "a pattern the network has never seen -- it reconstructs it poorly, producing high "
-    "reconstruction error. That error becomes your anomaly score.<br><br>"
-    "<b>Architecture</b>: Input --> Encoder --> Bottleneck --> Decoder --> Output<br>"
-    "The bottleneck is doing the real work. It forces the network to learn a compact "
-    "representation of what 'normal weather' looks like. Anything that does not fit "
-    "that representation sticks out.",
+    "The Photocopy Machine Analogy",
+    "Imagine you build a photocopier that is trained exclusively on pictures of cats. "
+    "You feed it a cat photo, it makes a copy, the copy looks great. Feed it another cat "
+    "photo -- another good copy. The copier has learned the essential 'cat-ness' of the images "
+    "and can reproduce them faithfully.<br><br>"
+    "Now feed it a picture of a dog. The copier tries to reproduce it, but it only knows how "
+    "to make cats. The copy comes out looking like a blurry, vaguely cat-shaped mess. "
+    "The <b>reconstruction error</b> -- the difference between the original dog picture and "
+    "the mangled copy -- is enormous. That error is your anomaly signal.<br><br>"
+    "An autoencoder does exactly this with weather data. We train it on normal hourly "
+    "readings: temperature, humidity, wind speed, pressure. It learns to compress these "
+    "4 numbers into 2 (or 1, or 3) internal numbers and then expand them back to 4. "
+    "For a typical Houston reading (30 degrees C, 75% humidity, 8 km/h wind, 1014 hPa), "
+    "the reconstruction is nearly perfect -- error of maybe 0.01.<br><br>"
+    "But for that anomalous Houston reading (30 degrees C, 20% humidity, 8 km/h, 1014 hPa), "
+    "the network tries to reconstruct it and says: 'Houston at 30 degrees C? Humidity should "
+    "be around 72%.' It outputs (30, 72, 8, 1014) when the actual input was (30, 20, 8, 1014). "
+    "The humidity reconstruction error alone is (72 - 20)^2 = 2,704. The network is essentially "
+    "telling us: 'I do not know how to make this pattern, because I have never seen Houston be "
+    "this dry at this temperature.'",
+)
+
+st.markdown(
+    "The key architectural choice is the **bottleneck**. Our data has 4 features. If the "
+    "hidden layer also has 4 neurons, the network can just pass everything through unchanged "
+    "-- no compression, no learning, and every point reconstructs perfectly (including anomalies). "
+    "By forcing the data through a bottleneck of, say, 2 neurons, the network must learn what "
+    "matters and throw away the rest. Normal patterns survive the compression. Anomalous "
+    "patterns do not."
 )
 
 formula_box(
     "Reconstruction Error (Anomaly Score)",
     r"\text{RE}(x) = \|x - \hat{x}\|^2 = \sum_{i=1}^{d} (x_i - \hat{x}_i)^2",
-    "x is the original input, x-hat is the reconstruction. "
-    "Points with RE above a threshold are flagged as anomalies. "
-    "In plain English: how badly did the network fail to recreate this data point?",
+    "x is the original 4-feature input (temp, humidity, wind, pressure), x-hat is the "
+    "autoencoder's reconstruction. For that anomalous Houston reading, RE might be 2,710 "
+    "(dominated by the humidity mismatch). For a normal reading, RE might be 0.02. "
+    "Points with RE above a threshold get flagged as anomalies.",
 )
 
-st.markdown("""
-### Why Autoencoders for Weather Anomalies?
-
-You might ask: if Isolation Forest already handles multivariate anomalies, why do we need
-another method? Three reasons:
-
-1. **Non-linear patterns**: Unlike PCA or even Isolation Forest, autoencoders can capture
-   non-linear relationships between features (e.g., the specific curve of how temperature
-   and humidity interact). They learn the *manifold* of normal data.
-2. **Learned normality**: The network builds an internal model of what "normal weather" looks
-   like across all features simultaneously. It is essentially learning the physics of
-   typical weather, compressed into a few neurons.
-3. **Flexible threshold**: You control the sensitivity via the reconstruction error threshold,
-   and you can examine *which features* are hardest to reconstruct for each anomaly.
-""")
-
 warning_box(
-    "We use sklearn's MLPRegressor as a simple autoencoder (input = output training target). "
-    "For production use, you would want PyTorch or TensorFlow with more control "
-    "over architecture, regularisation, and training. But the principle is identical."
+    "We use sklearn's MLPRegressor as a simple autoencoder (training target = input, so "
+    "the network learns to copy its input through a bottleneck). For production anomaly "
+    "detection, you would want PyTorch or TensorFlow with more control over architecture, "
+    "regularization, and training. But the principle is identical: train on normal data, "
+    "flag high reconstruction error."
 )
 
 st.divider()
@@ -80,6 +100,24 @@ st.divider()
 # 2. Interactive: Autoencoder Training & Anomaly Detection
 # ---------------------------------------------------------------------------
 st.subheader("Interactive: Autoencoder Anomaly Detection")
+
+st.markdown(
+    "Here is what each control does and what to watch for:"
+)
+st.markdown(
+    "- **City**: The autoencoder learns what normal weather looks like for this city. "
+    "LA has a very narrow definition of 'normal' (mild, dry, stable); Houston has a wider "
+    "one (hot and humid, but with more variance).\n"
+    "- **Bottleneck size**: The most important architectural choice. Size 1 = compress 4 "
+    "features into a single number (extreme compression, very strict 'normal'). Size 3 = "
+    "compress 4 into 3 (mild compression, forgiving 'normal'). Try each and watch how the "
+    "reconstruction error changes.\n"
+    "- **Anomaly threshold (percentile)**: Points above this percentile of reconstruction "
+    "error are flagged. At 97th percentile, the top 3% of worst-reconstructed points are "
+    "anomalies. Lower = more anomalies; higher = fewer but more confident.\n"
+    "- **Scatter axes**: Which two features to visualize. The color gradient shows "
+    "reconstruction error -- darker points are harder for the autoencoder to reproduce."
+)
 
 col_ctrl, col_viz = st.columns([1, 3])
 
@@ -207,6 +245,14 @@ st.divider()
 # ---------------------------------------------------------------------------
 st.subheader("Reconstruction Error Distribution")
 
+st.markdown(
+    "This histogram shows the reconstruction error for every data point. Most readings "
+    "cluster near zero -- the autoencoder reproduces them faithfully because they match "
+    "the patterns it learned during training. The long right tail contains the anomalies: "
+    "readings the autoencoder struggled to reconstruct because they do not fit its learned "
+    "model of 'normal weather in this city.'"
+)
+
 fig_re = go.Figure()
 fig_re.add_trace(go.Histogram(
     x=recon_error, nbinsx=100,
@@ -226,6 +272,14 @@ st.plotly_chart(fig_re, use_container_width=True)
 # Per-feature reconstruction error
 st.markdown("#### Per-Feature Reconstruction Error")
 
+st.markdown(
+    "Which of the 4 weather features is hardest for the autoencoder to reconstruct? "
+    "Features with higher error have more complex or variable patterns that resist "
+    "compression through the bottleneck. Think of it this way: if wind speed is hardest "
+    "to reconstruct, it means wind is the most unpredictable feature from the perspective "
+    "of a network that only has 2 internal neurons to work with."
+)
+
 per_feat_error = np.mean((X_scaled - X_recon) ** 2, axis=0)
 feat_error_df = pd.DataFrame({
     "Feature": [FEATURE_LABELS.get(f, f) for f in FEATURE_COLS],
@@ -242,11 +296,13 @@ apply_common_layout(fig_feat, title="Which Features Are Hardest to Reconstruct?"
 st.plotly_chart(fig_feat, use_container_width=True)
 
 insight_box(
-    "Features with higher reconstruction error are harder for the autoencoder to model -- "
-    "they have more complex or variable patterns that resist compression through the bottleneck. "
-    "This is useful diagnostic information: it tells you which aspects of weather are most "
-    "unpredictable, at least from the perspective of a neural network trying to summarize them "
-    "with two numbers."
+    "The feature with the highest reconstruction error is the one the autoencoder finds "
+    "most 'surprising' -- it carries the most information that cannot be predicted from "
+    "the other features. For many cities, wind speed is hardest to reconstruct because "
+    "it is the most chaotic feature (temperature and humidity follow smooth seasonal "
+    "patterns, but wind can spike or drop unpredictably). Surface pressure, on the other "
+    "hand, is often easiest to reconstruct because it is relatively stable. This ranking "
+    "tells you which aspects of weather are most 'compressible' by a neural network."
 )
 
 st.divider()
@@ -257,10 +313,20 @@ st.divider()
 st.subheader("Bottleneck Size Sensitivity")
 
 st.markdown(
-    "The bottleneck dimension is the architectural choice that matters most. "
-    "A bottleneck of 1 means the autoencoder must compress 4 weather features into a single "
-    "number -- extreme compression that creates a very strict definition of 'normal.' "
-    "A bottleneck of 3 allows a richer representation and more forgiving reconstruction."
+    "The bottleneck dimension is the architectural choice that matters most, so let me "
+    "explain what each option means concretely. Our input is 4 numbers: temperature, "
+    "humidity, wind, pressure."
+)
+st.markdown(
+    "- **Bottleneck = 1**: The autoencoder must compress all 4 features into a single "
+    "number. That is like describing a 4-dimensional weather state with one adjective. "
+    "It might capture 'hot-and-humid vs cold-and-dry' but nothing more nuanced. "
+    "Reconstruction error is high for everyone, but anomalies stick out more.\n"
+    "- **Bottleneck = 2**: Two internal numbers. The network can represent something like "
+    "'temperature-humidity axis' and 'wind-pressure axis.' Much better compression, and "
+    "the most common choice for 4-feature data.\n"
+    "- **Bottleneck = 3**: Three numbers for 4 features -- very mild compression. Almost "
+    "everything reconstructs well, so only the most extreme anomalies have high error."
 )
 
 bn_results = []
@@ -279,10 +345,13 @@ for bn in [1, 2, 3]:
 st.dataframe(pd.DataFrame(bn_results), use_container_width=True, hide_index=True)
 
 insight_box(
-    "Bottleneck=1 forces the most extreme compression -- the autoencoder must represent "
-    "4 weather features with a single number, which is like trying to describe a symphony "
-    "with one adjective. Reconstruction gets harder overall, but the anomalies stick out more "
-    "because they deviate from the learned manifold of normality."
+    "Notice how the mean reconstruction error drops as the bottleneck gets larger -- "
+    "more internal neurons means better reconstruction for everyone. But the anomaly "
+    "count stays roughly the same (because we are using a percentile threshold, which "
+    "always flags the top N%). The real difference is in what gets flagged: with bottleneck=1, "
+    "the autoencoder has such a crude model of normality that even mildly unusual readings "
+    "look anomalous. With bottleneck=3, only truly extreme combinations survive as anomalies "
+    "because the network can represent most weather patterns accurately."
 )
 
 st.divider()
@@ -294,9 +363,10 @@ st.subheader("Comparison: Autoencoder vs Isolation Forest vs Z-Score")
 
 st.markdown(
     "Now for the grand comparison. We have three fundamentally different approaches to "
-    "anomaly detection: a statistical method (Z-score), a tree-based method (Isolation Forest), "
-    "and a neural method (autoencoder). Where they agree, we can be quite confident. "
-    "Where they disagree, we learn something about the strengths and blind spots of each."
+    "the same question ('is this weather reading unusual?'): a statistical method (Z-score), "
+    "a tree-based method (Isolation Forest), and a neural method (autoencoder). Each has "
+    "different assumptions and blind spots. Where they agree, we can be quite confident. "
+    "Where they disagree, we learn something about each method's strengths."
 )
 
 # Z-score anomalies (|z| > 3 on any feature)
@@ -391,6 +461,14 @@ st.plotly_chart(fig_comp, use_container_width=True)
 
 # Consensus anomalies
 st.markdown("#### High-Confidence Anomalies (Flagged by 2+ Methods)")
+
+st.markdown(
+    "These are the readings where at least two of our three methods independently agree "
+    "that something is unusual. A statistical test, a tree ensemble, and a neural network "
+    "all have different assumptions -- so when two or more converge on the same point, "
+    "there is a genuine signal."
+)
+
 consensus = city_data[any_two].copy()
 if len(consensus) > 0:
     display_cols = ["datetime"] + FEATURE_COLS
@@ -400,9 +478,12 @@ if len(consensus) > 0:
     )
     insight_box(
         f"**{all_three.sum()}** points are flagged by all three methods -- these are the "
-        "most reliably anomalous observations in the dataset. Each method has different "
-        "assumptions and blind spots, so when a statistical test, a tree ensemble, and a "
-        "neural network all independently agree that something is weird, it probably is."
+        "highest-confidence anomalies in the dataset. Look at the actual values in the table "
+        "above. Do they look unusual for this city? You might see extreme temperature-humidity "
+        "combinations, or readings where wind speed and pressure suggest storm conditions. "
+        "The fact that three completely different algorithms (one statistical, one tree-based, "
+        "one neural) all independently flag the same readings is strong evidence that these "
+        "are genuinely unusual weather events, not statistical artifacts."
     )
 else:
     st.info("No consensus anomalies with current settings.")
@@ -463,34 +544,71 @@ st.divider()
 # 7. Quiz
 # ---------------------------------------------------------------------------
 quiz(
-    "Why does an autoencoder detect anomalies through reconstruction error?",
+    "The autoencoder is trained on normal Houston weather data. A new reading comes in: "
+    "temperature = 30 degrees C, humidity = 20%, wind = 8 km/h, pressure = 1013 hPa. "
+    "The autoencoder reconstructs it as (30, 71, 9, 1013). Why is the reconstruction "
+    "error high?",
     [
-        "Anomalies are always in the training data so the model memorises them",
-        "The autoencoder is trained on normal data, so it reconstructs anomalies poorly",
-        "The bottleneck stores anomaly labels",
-        "The decoder specifically learns to flag anomalies",
+        "The autoencoder memorized this exact reading and is reproducing it from memory",
+        "The autoencoder learned that Houston at 30 degrees C normally has ~71% humidity, "
+        "so it reconstructs what it *expects* rather than the actual input of 20%",
+        "The bottleneck is too large and the network cannot compress the data",
+        "The decoder specifically learned to flag anomalies by outputting wrong values",
     ],
     correct_idx=1,
-    explanation="The autoencoder learns to compress and reconstruct normal patterns. "
-                "When an anomaly arrives -- a pattern the network has never learned to represent "
-                "-- the reconstruction is poor, producing high error. The anomaly 'breaks' the "
-                "model, and that breakage is the signal.",
+    explanation="The autoencoder has learned the statistical structure of normal Houston weather. "
+                "It knows that when temperature is 30 degrees C, humidity is typically around "
+                "65-75%. When it receives an input with 20% humidity, it cannot represent "
+                "that unusual combination through its compressed bottleneck -- so it outputs "
+                "what it *expects* (71%) rather than what it received (20%). The squared error "
+                "on humidity alone is (71 - 20)^2 = 2,601, which dominates the reconstruction "
+                "error. This is exactly the mechanism: the network fails to copy unusual patterns "
+                "because they do not fit the compressed representation of normality it learned.",
     key="ch59_quiz1",
 )
 
 quiz(
-    "Which statement about the bottleneck dimension is correct?",
+    "You change the bottleneck from size 2 to size 1. What happens to the reconstruction "
+    "error and anomaly detection?",
     [
-        "Larger bottleneck always detects more anomalies",
-        "Bottleneck size has no effect on anomaly detection",
-        "Smaller bottleneck forces more compression, creating a stricter normality model",
-        "Bottleneck must equal the number of input features",
+        "Reconstruction error decreases because the network is simpler",
+        "Reconstruction error increases for everyone because the compression is more extreme, "
+        "but anomalies stick out more relative to the higher baseline",
+        "Nothing changes because the bottleneck size does not affect reconstruction",
+        "The network can no longer train because 1 neuron is too few",
     ],
-    correct_idx=2,
-    explanation="A smaller bottleneck forces the autoencoder to learn a more compressed "
-                "representation. This makes it harder to reconstruct unusual patterns, "
-                "effectively raising the bar for what counts as 'normal.'",
+    correct_idx=1,
+    explanation="With bottleneck=1, the network must squeeze 4 weather features into a single "
+                "number. That is like trying to describe temperature, humidity, wind, and pressure "
+                "with one word. Even normal readings get reconstructed imperfectly -- the mean error "
+                "goes up for everyone. But anomalous readings get reconstructed even *worse* because "
+                "they deviate from the already-strained model of normality. The anomalies stick out "
+                "more against the higher baseline, making detection more sensitive but also more "
+                "prone to false positives on mildly unusual (but not truly anomalous) readings.",
     key="ch59_quiz2",
+)
+
+quiz(
+    "Z-score flags a Dallas reading with wind speed = 78 km/h as anomalous (|z| = 4.2). "
+    "The autoencoder does NOT flag it. Which explanation is most plausible?",
+    [
+        "The autoencoder is wrong and should be retrained",
+        "The autoencoder learned that high wind often co-occurs with low pressure and low "
+        "temperature (storm conditions), so it can reconstruct this reading accurately",
+        "Z-score is always more reliable than autoencoders",
+        "The bottleneck is too small to capture wind patterns",
+    ],
+    correct_idx=1,
+    explanation="This is a beautiful example of the difference between univariate and "
+                "learned-model approaches. Z-score sees 78 km/h wind and compares it against "
+                "the marginal wind distribution -- it is extreme, so it flags it. But the "
+                "autoencoder has learned the *correlations* between features. It knows that "
+                "when pressure drops to 990 hPa and temperature drops to 5 degrees C (storm "
+                "conditions), high winds are expected. So it reconstructs the reading accurately: "
+                "'given the pressure and temperature, 78 km/h wind makes sense.' The error is low, "
+                "and the point is not flagged. The autoencoder is not wrong -- it is using richer "
+                "information than Z-score has access to.",
+    key="ch59_quiz3",
 )
 
 st.divider()
@@ -499,11 +617,23 @@ st.divider()
 # 8. Takeaways
 # ---------------------------------------------------------------------------
 takeaways([
-    "Autoencoders learn to compress and reconstruct normal data patterns. Anomalies are the things they fail to copy.",
-    "Reconstruction error is the anomaly score: the worse the reconstruction, the more anomalous the point. Simple, interpretable, effective.",
-    "The bottleneck size controls the compression level and anomaly sensitivity -- smaller means stricter, not necessarily better.",
-    "The threshold on reconstruction error determines the anomaly rate. This is where your domain judgment enters the equation.",
-    "Combining autoencoder, Isolation Forest, and Z-score provides robust consensus anomaly detection. When three different paradigms agree, pay attention.",
+    "An autoencoder learns to compress and reconstruct normal weather patterns. When an "
+    "anomalous reading arrives -- like 20% humidity in Houston at 30 degrees C -- the network "
+    "fails to reconstruct it because that pattern was never part of its training. The "
+    "reconstruction error IS the anomaly score.",
+    "The bottleneck size controls how strictly the network defines 'normal.' Bottleneck=1 "
+    "means the network summarizes 4 weather features with 1 number (extreme compression, "
+    "sensitive but noisy). Bottleneck=3 means 4 features compressed to 3 (mild compression, "
+    "only catches the most extreme anomalies).",
+    "The per-feature reconstruction error tells you which aspects of weather are hardest "
+    "to predict. Wind speed is typically the most unpredictable; pressure is the most stable. "
+    "This is the network discovering the physics of weather through pure pattern matching.",
+    "When Z-score, Isolation Forest, and the autoencoder all agree a reading is anomalous, "
+    "you can be very confident -- three completely different paradigms (statistical, tree-based, "
+    "neural) have independently converged on the same conclusion.",
+    "The threshold on reconstruction error is your domain judgment knob. At the 97th "
+    "percentile, you flag 3% of readings. At the 99th, you flag 1%. The right answer "
+    "depends on whether you want to catch every mildly unusual event or only the truly extreme ones.",
 ])
 
 navigation(

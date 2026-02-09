@@ -18,7 +18,6 @@ from utils.constants import CITY_LIST, CITY_COLORS, FEATURE_COLS, FEATURE_LABELS
 # ---------------------------------------------------------------------------
 # Page config
 # ---------------------------------------------------------------------------
-st.set_page_config(page_title="Ch 58: Isolation Forest", layout="wide")
 df = load_data()
 fdf = sidebar_filters(df)
 
@@ -27,46 +26,75 @@ chapter_header(58, "Isolation Forest", part="XIV")
 # ---------------------------------------------------------------------------
 # 1. Theory
 # ---------------------------------------------------------------------------
+st.markdown(
+    "In the last chapter, we detected anomalies by looking at one weather feature at a "
+    "time: is this temperature reading unusually high? Is this wind speed unusually fast? "
+    "That works great when the anomaly is extreme on a single axis. But here is a scenario "
+    "where it completely fails."
+)
+st.markdown(
+    "**The problem**: A reading comes in from Houston -- temperature 30 degrees C, "
+    "relative humidity 20%. Run Z-score on temperature: perfectly normal for a Texas "
+    "summer. Run Z-score on humidity: 20% is low but not unheard of. Neither feature "
+    "triggers an alarm individually. But *both together*? That is desert weather in a "
+    "subtropical coastal city. Houston at 30 degrees C should have humidity around "
+    "65-80%, not 20%. The *combination* is the anomaly, not either feature alone."
+)
+st.markdown(
+    "This is a **multivariate anomaly** -- unusual in the interaction between features, "
+    "not in any single feature. To catch these, we need an algorithm that looks at all "
+    "features simultaneously. Enter Isolation Forest."
+)
+
 concept_box(
-    "Isolation Forest Algorithm",
-    "Here is a genuinely clever idea: anomalies are, by definition, few and different. "
-    "So if you try to isolate a data point by randomly splitting the feature space, anomalies "
-    "should require <em>fewer splits</em> to end up alone. They are the loners at the party -- "
-    "easy to separate from the crowd.<br><br>"
-    "Isolation Forest exploits this by building random binary trees. Each tree randomly "
-    "selects a feature and a split value. Anomalous points end up with shorter path lengths "
-    "(they are isolated quickly), while normal points are buried deeper in the tree.<br><br>"
+    "How Isolation Forest Works (The Loner-at-the-Party Intuition)",
+    "Here is a genuinely clever idea. Think about trying to isolate a specific person "
+    "in a crowd by asking random yes/no questions. 'Are you taller than 180 cm? Are you "
+    "wearing a red shirt? Are you standing in the left half of the room?'<br><br>"
+    "If someone is in the middle of a dense group, you need many questions to single "
+    "them out. But if someone is standing alone in the corner -- the anomaly -- you can "
+    "isolate them with very few questions. 'Are you in the northeast corner?' Done.<br><br>"
+    "Isolation Forest does exactly this with data. It builds random binary trees that "
+    "split the 4-dimensional weather space (temperature, humidity, wind, pressure) with "
+    "random cuts. An anomalous reading -- say, that Houston 30 degrees C / 20% humidity "
+    "combo -- ends up alone after just 2-3 splits. A normal reading (Houston, 30 degrees C, "
+    "72% humidity) needs 8-10 splits because it is surrounded by similar points.<br><br>"
+    "<b>The anomaly score is just the average path length across many random trees.</b> "
+    "Short paths = easy to isolate = anomalous. Long paths = hard to isolate = normal.<br><br>"
     "<b>Key advantages</b>:<br>"
-    "- Works in high dimensions (multivariate anomalies) without breaking a sweat<br>"
-    "- Makes no distributional assumptions -- it does not care if your data is normal<br>"
-    "- Linear time complexity O(n), which is impressively fast<br>"
-    "- Handles mixed anomaly types without being told what to look for",
+    "- Works on all 4 weather features simultaneously (catches multivariate anomalies)<br>"
+    "- Makes no assumptions about how the data is distributed<br>"
+    "- Runs in O(n) time -- fast enough for our 105,000 rows<br>"
+    "- Does not need you to specify what 'normal' looks like in advance",
 )
 
 formula_box(
     "Anomaly Score",
     r"s(x, n) = 2^{-\frac{E[h(x)]}{c(n)}}",
-    "h(x) is the path length for point x; c(n) is the average path length in a "
-    "binary search tree of n points. Score close to 1 = definitely anomalous; "
-    "close to 0.5 = boringly normal.",
+    "h(x) is the path length for point x (how many splits to isolate it); "
+    "c(n) is the average path length in a random binary tree of n points (the baseline). "
+    "Score close to 1 = definitely anomalous (isolated quickly); close to 0.5 = boringly "
+    "normal (takes the expected number of splits). For that Houston desert-weather reading, "
+    "we would expect a score near 0.7-0.9.",
 )
 
 st.markdown("""
-### Why Isolation Forest for Weather?
+### Why This Matters for Our Weather Data
 
-The statistical methods from the last chapter (Z-score, IQR) check one variable at a time.
-But some anomalies are only visible when you look at **combinations** of features. A temperature
-of 30 C is fine. A humidity of 20% is fine. But 30 C *and* 20% humidity in Houston? That is
-desert weather in a subtropical city -- genuinely unusual.
+The Z-score and IQR methods from the last chapter check one variable at a time.
+Here are multivariate anomalies they would miss entirely:
 
-Consider these multivariate anomalies:
+- **30 degrees C + 20% humidity in Houston**: each value is individually normal, but the
+  combination is desert weather in a subtropical city
+- **High wind (40 km/h) + dropping pressure (990 hPa)**: a storm system rolling in --
+  neither value alone is extreme, but together they signal severe weather
+- **0 degrees C + 95% humidity + 0 km/h wind**: fog or freezing rain conditions, where
+  the combination matters more than any single reading
 
-- **High wind + low pressure**: a storm system rolling in
-- **High temperature + low humidity**: desert-like conditions (unusual for coastal cities)
-- **Low temperature + high humidity**: fog or freezing rain conditions
-
-None of these are extreme on any single axis. You need to look at the combination.
-Isolation Forest does this naturally, because it splits on all features simultaneously.
+Isolation Forest catches all of these because it splits on all features simultaneously.
+When it tries to isolate that Houston desert-weather reading, it lands in an empty region
+of the 4D feature space after just a few splits -- because no other Houston readings live
+in the low-humidity corner of that space.
 """)
 
 st.divider()
@@ -75,6 +103,23 @@ st.divider()
 # 2. Interactive: Isolation Forest Anomaly Detection
 # ---------------------------------------------------------------------------
 st.subheader("Interactive: Multivariate Anomaly Detection")
+
+st.markdown(
+    "Now you get to run Isolation Forest on real weather data. Here is what each control does:"
+)
+st.markdown(
+    "- **City**: Different cities have different 'normal' weather, so anomalies differ. "
+    "LA has very narrow weather patterns (anomalies are subtle); Dallas has wide variation "
+    "(anomalies need to be truly extreme).\n"
+    "- **Contamination**: The single most important parameter. It tells the algorithm what "
+    "fraction of your data you expect to be anomalous. Set it to 0.02 and exactly 2% of "
+    "readings get flagged. Too high = false alarms; too low = missed anomalies.\n"
+    "- **Number of trees**: More trees = more stable results, but slower. 100 is usually "
+    "sufficient; going to 500 gives marginal improvement.\n"
+    "- **Scatter plot axes**: Choose which two features to visualize. The algorithm always "
+    "uses all 4 features internally -- but we can only see 2 at a time on screen. Try "
+    "different pairs to understand why specific points were flagged."
+)
 
 col_ctrl, col_viz = st.columns([1, 3])
 
@@ -185,6 +230,14 @@ st.divider()
 # ---------------------------------------------------------------------------
 st.subheader("Anomaly Score Distribution")
 
+st.markdown(
+    "Every data point gets an anomaly score from the Isolation Forest. The score is based "
+    "on how quickly the point was isolated: more negative = faster isolation = more anomalous. "
+    "The decision boundary (the vertical dashed line at 0) separates normal from anomalous. "
+    "Points to the left of the line were easy to isolate -- the algorithm is saying 'this "
+    "weather reading does not look like the others.'"
+)
+
 fig_score = go.Figure()
 fig_score.add_trace(go.Histogram(
     x=city_data.loc[normal_mask, "iso_score"], nbinsx=80,
@@ -204,10 +257,12 @@ apply_common_layout(fig_score, title="Isolation Forest Anomaly Score Distributio
 st.plotly_chart(fig_score, use_container_width=True)
 
 insight_box(
-    "The anomaly score measures how easy it is to isolate a point -- lower (more negative) "
-    "scores mean the point was isolated faster, which is the algorithm's way of saying 'this "
-    "one is not like the others.' The contamination parameter sets the threshold on this score, "
-    "which is where your domain knowledge comes in."
+    "Look at the overlap region near the decision boundary. Points right at the edge "
+    "are borderline -- the algorithm is not very confident about them. Points far to "
+    "the left (scores of -0.2 or lower) were isolated extremely quickly, meaning their "
+    "combination of temperature, humidity, wind, and pressure is genuinely unusual for "
+    "this city. The contamination parameter determines exactly where on this score "
+    "distribution the boundary gets placed -- that is where your domain knowledge enters."
 )
 
 st.divider()
@@ -218,10 +273,13 @@ st.divider()
 st.subheader("Contamination Sensitivity Analysis")
 
 st.markdown(
-    "The contamination parameter is the single most important knob you get to turn. "
-    "It tells the algorithm what fraction of your data you expect to be anomalous. "
-    "Set it too high and you get false positives. Set it too low and you miss real anomalies. "
-    "There is no free lunch here -- you need domain knowledge."
+    "The contamination parameter is the single most important knob you get to turn, and "
+    "the algorithm cannot figure it out for you. Here is the practical question: what "
+    "fraction of weather readings in Houston do you expect to be genuinely anomalous? "
+    "If you answer '0.5%,' that means about 88 out of 17,500 hourly readings. If you "
+    "answer '5%,' that is 875 readings -- nearly one per day. The difference is enormous, "
+    "and there is no mathematical way to determine the right answer. You need to know "
+    "something about weather to set this well."
 )
 
 contam_values = [0.005, 0.01, 0.02, 0.05, 0.10]
@@ -248,10 +306,13 @@ apply_common_layout(fig_contam, title="Anomaly Count vs Contamination", height=3
 st.plotly_chart(fig_contam, use_container_width=True)
 
 warning_box(
-    "Contamination is not something the algorithm learns from data -- you must set it based on "
-    "domain knowledge. This is both a weakness (you need to know something in advance) and a "
-    "strength (you are encoding real-world understanding). In weather data, 1-5% is usually "
-    "reasonable. If your anomaly detector flags 20% of your data, either something catastrophic "
+    "A contamination of 0.02 (2%) for weather data means you expect about 1 in 50 "
+    "hourly readings to be genuinely anomalous. That translates to roughly one anomalous "
+    "reading every two days -- which feels about right for interesting weather events like "
+    "unusual temperature-humidity combos, storm signatures, or sensor glitches. At 0.10 "
+    "(10%), you are flagging one in every ten readings, which would mean 2-3 per day -- "
+    "at that point, 'anomalous' has become 'somewhat unusual,' and you have diluted the "
+    "signal. If your anomaly detector flags 20% of your data, either something catastrophic "
     "happened to the climate or you need to recalibrate."
 )
 
@@ -263,9 +324,10 @@ st.divider()
 st.subheader("Comparison: Isolation Forest vs Z-Score")
 
 st.markdown(
-    "Here is where things get interesting. We compare the multivariate Isolation Forest "
-    "to a simple univariate Z-score applied to each feature separately. The points "
-    "they disagree about reveal what the multivariate approach buys you."
+    "Here is where things get interesting. We run both the multivariate Isolation Forest "
+    "(which looks at all 4 features simultaneously) and a simple univariate Z-score "
+    "(applied to each feature separately, flagging any reading where |z| > 3 on *any* "
+    "feature). The points they disagree about reveal exactly what the multivariate approach buys you."
 )
 
 # Z-score anomalies (|z| > 3 on any feature)
@@ -340,12 +402,15 @@ apply_common_layout(fig_comp, title="Method Comparison: Isolation Forest vs Z-Sc
 st.plotly_chart(fig_comp, use_container_width=True)
 
 insight_box(
-    "The purple diamonds (IF Only) are the multivariate anomalies that Z-score misses -- "
-    "points where no single feature is extreme but the *combination* is unusual. "
-    "The orange squares (Z-Score Only) are points that look extreme on one axis but are "
-    "actually normal in the broader context of all four features. This is the fundamental "
-    "tradeoff: univariate methods are simple but miss interactions; multivariate methods "
-    "catch them but require more careful tuning."
+    "The purple diamonds (IF Only) are the whole point of this chapter. These are "
+    "readings where no single feature exceeds the 3-sigma threshold, but the *combination* "
+    "of features is unusual. That Houston reading of 30 degrees C and 20% humidity would "
+    "show up here -- normal temperature, normal-ish humidity, but the pair is desert "
+    "weather in a coastal city. The orange squares (Z-Score Only) are the opposite: "
+    "points where one feature is individually extreme (say, a 45-degree C spike) but "
+    "the full 4D picture is actually consistent with what the Isolation Forest has seen "
+    "before. Switch between different axis pairs to see which feature combinations the "
+    "Isolation Forest is keying on."
 )
 
 st.divider()
@@ -354,6 +419,14 @@ st.divider()
 # 6. Feature Importance for Anomalies
 # ---------------------------------------------------------------------------
 st.subheader("What Makes These Points Anomalous?")
+
+st.markdown(
+    "When Isolation Forest flags a reading, a natural question is: *which* features made "
+    "it unusual? We can answer this by comparing the average feature values of flagged "
+    "anomalies against the normal readings. If anomalies have much higher wind speed "
+    "on average, wind is probably driving those detections. If they have unusual humidity, "
+    "that is the key feature."
+)
 
 if n_if_anomalies > 0:
     anom_data = city_data[city_data["iso_anomaly"]]
@@ -371,6 +444,13 @@ if n_if_anomalies > 0:
         })
 
     st.dataframe(pd.DataFrame(comparison_rows), use_container_width=True, hide_index=True)
+
+    st.markdown(
+        "The 'Difference (in std)' column tells you how far apart the anomaly group is "
+        "from normal, measured in standard deviations. A value of 1.0 or higher means "
+        "anomalies are systematically different on that feature. A value near 0 means "
+        "that feature is not driving the detections."
+    )
 
     # Box plots comparing normal vs anomaly
     fig_box = make_subplots(rows=1, cols=len(FEATURE_COLS),
@@ -430,33 +510,66 @@ st.divider()
 # 8. Quiz
 # ---------------------------------------------------------------------------
 quiz(
+    "Houston logs a reading of temperature = 30 degrees C, humidity = 18%, wind = 12 km/h, "
+    "pressure = 1013 hPa. The Z-score for each feature is below 2. Isolation Forest flags "
+    "it as anomalous. What is the most likely explanation?",
+    [
+        "Isolation Forest is broken and should be recalibrated",
+        "The contamination parameter is set too high",
+        "The combination of 30 degrees C and 18% humidity is unusual for Houston, even though "
+        "each value individually is within normal range",
+        "Z-score is always more accurate than Isolation Forest",
+    ],
+    correct_idx=2,
+    explanation="This is the textbook case for multivariate anomaly detection. Houston is a "
+                "humid subtropical city where 30 degrees C typically comes with 65-80% humidity. "
+                "A reading of 18% humidity at that temperature means unusually dry air -- desert-like "
+                "conditions that are rare in Houston. Z-score checks each feature against its own "
+                "distribution and finds nothing extreme. Isolation Forest checks the 4D combination "
+                "and correctly identifies that this region of feature space (warm + bone dry) is "
+                "nearly empty for Houston data. This is exactly what multivariate anomaly detection "
+                "is designed to catch.",
+    key="ch58_quiz1",
+)
+
+quiz(
     "What does the contamination parameter control in Isolation Forest?",
     [
         "The number of trees in the ensemble",
         "The expected proportion of anomalies in the dataset",
         "The maximum depth of each tree",
-        "The learning rate",
+        "The learning rate for tree construction",
     ],
     correct_idx=1,
-    explanation="Contamination sets the expected fraction of anomalies. It determines "
-                "the threshold on the anomaly score for classifying points. You need domain "
-                "knowledge to set this well -- the algorithm cannot figure it out for you.",
-    key="ch58_quiz1",
+    explanation="Contamination tells the algorithm what fraction of readings you expect to be "
+                "anomalous. Set it to 0.02 and the algorithm places its decision boundary so that "
+                "exactly 2% of points fall on the anomalous side. For our weather data, 0.02 means "
+                "about 1 anomalous reading every two days -- perhaps a storm signature, an unusual "
+                "temperature-humidity combination, or a sensor glitch. The algorithm ranks all points "
+                "by how easy they were to isolate; contamination just determines where to draw the line "
+                "between 'unusual' and 'anomalous.' You need domain knowledge to set this well.",
+    key="ch58_quiz2",
 )
 
 quiz(
-    "Why can Isolation Forest detect anomalies that Z-score misses?",
+    "You run Isolation Forest on Dallas weather with contamination=0.02 (2%). The results show "
+    "that 85% of flagged anomalies occur during December-February. Is this a problem?",
     [
-        "It uses a higher threshold",
-        "It has more parameters to tune",
-        "It considers feature combinations (multivariate), not just individual features",
-        "It uses a non-parametric distribution",
+        "Yes -- the model is biased toward winter data and should be retrained",
+        "Yes -- contamination should be increased to spread anomalies evenly across seasons",
+        "Not necessarily -- Dallas winters are when extreme weather events (ice storms, cold "
+        "snaps, unusual pressure patterns) are most likely, so this concentration makes physical sense",
+        "Not necessarily -- 2% is too low and we need at least 10%",
     ],
     correct_idx=2,
-    explanation="Isolation Forest operates on all features simultaneously, catching points "
-                "where the combination is unusual even if no single feature is extreme. "
-                "This is the whole point of multivariate anomaly detection.",
-    key="ch58_quiz2",
+    explanation="Anomalies should NOT be evenly distributed across seasons unless weather extremes "
+                "are equally likely year-round, which they are not. Dallas winters bring ice storms, "
+                "cold fronts pushing Arctic air into Texas, and unusual pressure patterns -- exactly "
+                "the kind of multivariate anomalies Isolation Forest is designed to detect. The "
+                "concentration in winter is the model correctly identifying when unusual weather "
+                "actually happens. If anomalies were evenly spread, that would be more suspicious, "
+                "suggesting the model is picking up noise rather than real events.",
+    key="ch58_quiz3",
 )
 
 st.divider()
@@ -465,11 +578,22 @@ st.divider()
 # 9. Takeaways
 # ---------------------------------------------------------------------------
 takeaways([
-    "Isolation Forest detects anomalies by measuring how easy it is to isolate a point with random splits -- a beautifully simple idea that works surprisingly well.",
-    "Anomalous points have shorter average path lengths (they are isolated more quickly). Normal points blend into the crowd.",
-    "The contamination parameter must be set based on domain knowledge. The algorithm tells you which points are most unusual; you decide how many to call anomalies.",
-    "Unlike Z-score, Isolation Forest naturally handles multivariate anomalies -- combinations of features that are unusual even when individual features are not.",
-    "Comparing methods helps identify which anomalies are most reliably unusual. When Isolation Forest and Z-score agree, you can be especially confident.",
+    "Isolation Forest detects anomalies by measuring how easy it is to isolate a point with "
+    "random splits. That Houston reading of 30 degrees C / 20% humidity gets isolated in 2-3 "
+    "splits because no other Houston readings live in that warm-and-dry corner of feature space.",
+    "The key advantage over Z-score: Isolation Forest catches multivariate anomalies where "
+    "no single feature is extreme but the combination is unusual. Temperature is fine, humidity "
+    "is fine, but temperature AND humidity together in this city? That does not happen.",
+    "The contamination parameter is your domain knowledge knob. For weather data, 1-3% is "
+    "usually reasonable -- that is roughly 1 anomalous event per day or every few days, which "
+    "aligns with how often genuinely unusual weather occurs.",
+    "When Isolation Forest and Z-score agree on an anomaly, you can be especially confident. "
+    "When they disagree, the disagreements teach you something: IF-only anomalies are "
+    "multivariate patterns Z-score misses; Z-only anomalies are single-feature extremes that "
+    "are normal in the broader context.",
+    "Always inspect your anomalies after detection. If the flagged readings do not look unusual "
+    "to a domain expert (or if they all cluster suspiciously), recalibrate your contamination "
+    "or check whether the model is picking up seasonal variation instead of true anomalies.",
 ])
 
 navigation(

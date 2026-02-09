@@ -15,6 +15,9 @@ compare all models to each other, and also when to pipe them
 See if we can spot models learning latent variables like storms, rain (if we dont include precipitation), other stuff like that. solar radiation, soil temp, etc
 
 
+bonus:
+
+
 
 recommend a Transfer Learning experiment in your Forge:
 
@@ -51,3 +54,6 @@ neuronal ensembles
 quantum/atomic level (maybe hold off on this for now bc experiements might be too complex)
 
 obviously the theme is also that everything is like a brain..
+
+
+

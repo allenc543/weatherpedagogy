@@ -18,7 +18,6 @@ from utils.ui_components import (
 from utils.constants import CITY_LIST, FEATURE_LABELS, CITY_COLORS
 
 # ---------------------------------------------------------------------------
-st.set_page_config(page_title="Ch 19: Polynomial Regression", layout="wide")
 df = load_data()
 fdf = sidebar_filters(df)
 

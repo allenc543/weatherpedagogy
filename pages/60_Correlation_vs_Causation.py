@@ -17,7 +17,6 @@ from utils.constants import CITY_LIST, CITY_COLORS, FEATURE_LABELS, SEASON_ORDER
 # ---------------------------------------------------------------------------
 # Page config
 # ---------------------------------------------------------------------------
-st.set_page_config(page_title="Ch 60: Correlation vs Causation", layout="wide")
 df = load_data()
 fdf = sidebar_filters(df)
 
@@ -26,31 +25,72 @@ chapter_header(60, "Correlation vs Causation", part="XV")
 # ---------------------------------------------------------------------------
 # 1. Theory
 # ---------------------------------------------------------------------------
+st.markdown(
+    "Let me start with a specific finding from our weather data, and then explain why "
+    "it does not mean what it appears to mean."
+)
+st.markdown(
+    "**The finding**: Across our 105,000 hourly readings from 6 cities, temperature and "
+    "relative humidity are correlated. When temperature goes up, humidity tends to go down "
+    "(or vice versa, depending on which cities and time ranges you include). You compute "
+    "a Pearson correlation, get a number like r = -0.45, and the p-value is essentially zero."
+)
+st.markdown(
+    "**The tempting conclusion**: 'Aha! Raising the temperature causes humidity to drop. "
+    "If we could heat up the air, we could reduce humidity.' This sounds plausible -- and "
+    "it is exactly the kind of reasoning that gets people into trouble."
+)
+st.markdown(
+    "**The actual explanation**: Both temperature and humidity are driven by **season**. "
+    "In summer, the sun heats the air (high temperature) and the relative humidity drops "
+    "because warm air can hold more moisture without feeling 'humid.' In winter, temperatures "
+    "fall and relative humidity rises. Season is moving both variables simultaneously, "
+    "creating a correlation between them -- but temperature is not *causing* humidity to "
+    "change any more than wearing shorts causes ice cream sales to increase."
+)
+
 concept_box(
-    "Correlation Does Not Imply Causation",
-    "Two variables can be correlated (move together) without one <b>causing</b> the other. "
-    "Three common reasons for non-causal correlation:<br><br>"
-    "<b>1. Confounding</b>: A third variable drives both (e.g., season affects both "
-    "temperature and humidity).<br>"
-    "<b>2. Reverse causation</b>: The direction of cause is opposite to what we assume.<br>"
-    "<b>3. Coincidence</b>: Spurious correlation with no meaningful connection.<br><br>"
-    "Establishing causation requires experiments, natural experiments, or careful "
-    "causal reasoning with domain knowledge.",
+    "Three Reasons Variables Can Be Correlated Without One Causing the Other",
+    "Our weather data illustrates all three patterns:<br><br>"
+    "<b>1. Confounding (the big one)</b>: A third variable drives both. Season affects both "
+    "temperature and humidity, creating a correlation between them. If you look at July "
+    "data alone (holding season constant), the temperature-humidity correlation might be "
+    "completely different. The confounder is doing all the work.<br><br>"
+    "<b>2. Reverse causation</b>: You might observe that high humidity co-occurs with high "
+    "temperature and conclude humidity causes warming. Actually, the physical causation runs "
+    "the other way -- temperature affects the air's capacity for moisture, which affects "
+    "relative humidity. Getting the arrow direction wrong leads to wrong interventions.<br><br>"
+    "<b>3. Spurious correlation (coincidence)</b>: In a dataset of 105,000 rows across "
+    "6 cities, you will find correlations between variables that have no meaningful "
+    "connection. If NYC happens to have high wind in months when Dallas has high pressure, "
+    "the correlation is real but meaningless. With enough variables, some will correlate "
+    "by pure chance.",
 )
 
 st.markdown("""
 ### Directed Acyclic Graphs (DAGs)
 
-DAGs are diagrams that encode causal assumptions. Arrows represent causal relationships.
+The tool that makes causal reasoning rigorous is the **DAG** -- a diagram where arrows
+represent causal relationships. Here is what the temperature-humidity situation really
+looks like:
 
 ```
-Season --> Temperature
-Season --> Humidity
-Temperature <-- Season --> Humidity
+              Season
+             /      \\
+            v        v
+    Temperature    Humidity
 ```
 
-In this DAG, **Season** is a **confounder** -- it causally affects both temperature
-and humidity, creating a correlation between them even though neither directly causes the other.
+**Season** is a **confounder**. It causally affects both temperature and humidity.
+The arrow from Season to Temperature says 'season causes temperature changes' (true -- it is
+hotter in summer). The arrow from Season to Humidity says 'season causes humidity changes'
+(also true). But there is NO arrow directly between Temperature and Humidity -- the
+correlation between them is entirely an artifact of their shared cause.
+
+This is not just an academic point. If you built a model to predict humidity from temperature
+without accounting for season, your model would work fine on historical data (the correlation
+is real!) but would give completely wrong answers if you tried to use it for intervention
+('what would happen to humidity if we artificially raised the temperature?').
 """)
 
 st.divider()
@@ -61,7 +101,8 @@ st.divider()
 st.subheader("Case Study: Temperature and Humidity Correlation")
 
 st.markdown(
-    "Let us examine the correlation between temperature and humidity in our weather data."
+    "Let us see the correlation in our actual data. This scatter plot shows every "
+    "temperature-humidity pair (subsampled for performance), color-coded by city."
 )
 
 # Overall correlation
@@ -101,19 +142,21 @@ with col_info:
         st.markdown("The overall correlation is weak.")
 
     st.markdown("---")
-    st.markdown("**Does humidity *cause* temperature?**")
-    st.markdown("No! The physical reality is more complex:")
+    st.markdown("**Does humidity *cause* temperature changes?**")
     st.markdown(
-        "- Solar radiation heats the surface\n"
-        "- Warmer air can hold more moisture (Clausius-Clapeyron)\n"
-        "- But relative humidity *decreases* when temp rises faster than moisture\n"
-        "- **Season** is the common driver of both"
+        "No. The physical reality is that solar radiation heats the surface "
+        "(raising temperature), and warmer air has greater moisture-holding capacity, "
+        "which *lowers* relative humidity even if absolute moisture stays the same. "
+        "Meanwhile, **season** drives both: summer brings heat and changes the moisture "
+        "balance, winter does the opposite. The correlation is real, but the causal story "
+        "is not 'change temperature to change humidity.'"
     )
 
 warning_box(
-    "Observing r = {:.3f} between temperature and humidity does NOT mean changing one "
-    "will change the other. The correlation exists because both are driven by seasonal "
-    "and geographic factors.".format(overall_r)
+    "Observing r = {:.3f} between temperature and humidity does NOT mean that "
+    "intervening on one will change the other. The correlation exists because both "
+    "are driven by seasonal and geographic factors. If you conditioned on 'July in "
+    "Houston,' the relationship between these variables could be completely different.".format(overall_r)
 )
 
 st.divider()
@@ -124,8 +167,18 @@ st.divider()
 st.subheader("Confounding: The Role of Season")
 
 st.markdown(
-    "If season is a confounder, then the correlation between temperature and humidity "
-    "should change (often weaken) when we **control for** (condition on) season."
+    "Here is the test. If season really is confounding the temperature-humidity correlation, "
+    "then the correlation should change -- often weaken or even reverse -- when we look "
+    "at each season separately. This is what 'controlling for a confounder' means: you hold "
+    "the confounder constant and see if the relationship between the other two variables "
+    "still holds."
+)
+st.markdown(
+    "Think of it this way: the overall correlation mixes together summer data (hot, low-ish "
+    "humidity) and winter data (cold, high-ish humidity). That mixing creates a negative "
+    "slope. But *within* summer alone, or *within* winter alone, the relationship might be "
+    "much weaker or even positive, because you have removed the between-season variation "
+    "that was driving the correlation."
 )
 
 # Per-season correlations
@@ -199,9 +252,13 @@ fig_seasons.update_layout(template="plotly_white", height=350, margin=dict(t=40,
 st.plotly_chart(fig_seasons, use_container_width=True)
 
 insight_box(
-    "When we control for season, the within-season correlations often differ from "
-    "the overall correlation. This confirms that season confounds the temperature-humidity "
-    "relationship. The overall correlation is partly an artifact of seasonal variation."
+    "Compare the within-season correlations to the overall. If the within-season correlations "
+    "are weaker (closer to zero) or even opposite in sign compared to the overall r, that "
+    "confirms season is confounding the relationship. The overall correlation was being driven "
+    "by comparing 'cold winter days with high humidity' against 'hot summer days with low "
+    "humidity' -- not by any within-season relationship between temperature and humidity. "
+    "This is the single most important lesson in causal inference: the overall pattern can "
+    "be an illusion created by a lurking variable."
 )
 
 st.divider()
@@ -212,12 +269,17 @@ st.divider()
 st.subheader("Simpson's Paradox with Weather Data")
 
 concept_box(
-    "Simpson's Paradox",
-    "A trend that appears in aggregated data <b>reverses</b> or disappears when the data "
-    "is split into groups. This happens when a lurking variable (confounder) changes the "
-    "composition of groups.<br><br>"
-    "Example: overall, temperature and humidity might be negatively correlated. "
-    "But within each city, the correlation could be positive (or vice versa).",
+    "Simpson's Paradox: When the Aggregate Lies",
+    "Simpson's paradox is the extreme version of confounding. A trend that appears in "
+    "the combined data <b>completely reverses</b> when you split by a grouping variable.<br><br>"
+    "Here is a concrete weather example. Suppose the overall correlation between temperature "
+    "and humidity across all 6 cities is negative (r = -0.45). But when you look at each city "
+    "individually, the correlation within every city is <em>positive</em>. How is that possible?<br><br>"
+    "Because the cities have different baselines. Los Angeles is cool and dry. Houston is hot "
+    "and humid. Dallas is hot and moderate. When you mix them together, you are comparing "
+    "'cool dry LA days' against 'hot humid Houston days,' creating a negative slope. But "
+    "within each city, warmer days might actually be more humid (convective moisture). "
+    "The aggregate trend is the opposite of every subgroup trend. That is Simpson's paradox.",
 )
 
 # Per-city correlations
@@ -267,20 +329,24 @@ if reversed_cities:
     st.error(
         f"**Simpson's Paradox detected!** The overall correlation is {overall_sign} "
         f"(r={overall_r:.3f}), but the following cities show the opposite sign: "
-        f"{', '.join(reversed_cities)}."
+        f"{', '.join(reversed_cities)}. This means the aggregate trend is misleading -- "
+        "city-level geography is confounding the relationship."
     )
 else:
     st.info(
         "No sign reversal detected between overall and per-city correlations in this case. "
-        "Simpson's paradox does not always occur, but it is important to check!"
+        "Simpson's paradox does not always occur, but the per-city correlations still differ "
+        "from the overall, confirming that city is a confounder even without full reversal."
     )
 
 # Demonstrate with a constructed example
-st.markdown("#### Constructed Example: Temperature vs Wind Speed")
+st.markdown("#### Exploring Another Pair: Temperature vs Wind Speed")
 
 st.markdown(
     "Let us check temperature vs wind speed -- a relationship where Simpson's paradox "
-    "is more likely due to geographic confounding."
+    "is more likely because different cities have very different wind patterns. Coastal "
+    "cities (Houston, LA) get sea breezes that inland cities (Dallas, Austin) do not, "
+    "creating geographic confounding."
 )
 
 tw_data = fdf[["temperature_c", "wind_speed_kmh", "city"]].dropna()
@@ -307,8 +373,8 @@ st.divider()
 st.subheader("Causal DAGs for Weather Variables")
 
 st.markdown("""
-Below are causal structures we can reason about with weather domain knowledge.
-Arrows indicate causal direction.
+DAGs make our causal assumptions explicit and testable. Here are four DAGs for
+relationships in our weather data, each grounded in meteorological physics.
 
 #### DAG 1: Season Confounds Temperature and Humidity
 
@@ -319,24 +385,30 @@ Arrows indicate causal direction.
     Temperature    Humidity
 ```
 
-Season causes both temperature and humidity to change, creating a spurious correlation.
+This is our running example. Season drives both variables. The temperature-humidity
+correlation is not causal -- it is an artifact of the shared seasonal driver. To test
+this, we control for season and check if the correlation weakens.
 
-#### DAG 2: Pressure Drives Wind
+#### DAG 2: Pressure Gradient Drives Wind
 
 ```
     Pressure Gradient  -->  Wind Speed
 ```
 
-Differences in atmospheric pressure directly cause wind (physically correct).
+This one IS causal. Differences in atmospheric pressure directly cause air to move (wind).
+This is one of the most well-established physical laws in meteorology. We will test this
+with Granger causality in the next chapter.
 
-#### DAG 3: Temperature - Humidity Chain
+#### DAG 3: Temperature Affects Humidity Capacity
 
 ```
     Solar Radiation --> Temperature --> Saturation Capacity --> Relative Humidity
 ```
 
-Temperature does causally affect humidity *capacity*, but relative humidity also
-depends on actual moisture content, which has other causes.
+Temperature does causally affect humidity *capacity* (the Clausius-Clapeyron equation).
+But relative humidity also depends on actual moisture content, which has other causes
+(proximity to ocean, recent rainfall, air mass origin). So the causal chain exists but
+is more complex than a simple 'temperature causes humidity.'
 
 #### DAG 4: Full Weather DAG (Simplified)
 
@@ -350,12 +422,19 @@ depends on actual moisture content, which has other causes.
                                           Temperature
                                           (denominator)
 ```
+
+Temperature appears twice -- once as a cause of evaporation and once as the denominator
+in the relative humidity calculation. This is why the relationship is complex: temperature
+affects relative humidity through two pathways that push in opposite directions.
 """)
 
 insight_box(
-    "DAGs encode our assumptions about causal structure. They help us identify "
-    "confounders (backdoor paths), mediators, and colliders. In weather science, "
-    "physical mechanisms provide strong prior knowledge about causal direction."
+    "DAGs are not decorations -- they are tools for reasoning about which variables you "
+    "need to control for (and which you must NOT control for, because doing so can introduce "
+    "bias). In our weather data, controlling for season removes confounding. But if you "
+    "accidentally controlled for a variable that sits on the causal pathway (like specific "
+    "humidity between temperature and relative humidity), you would block the real causal "
+    "signal. DAGs help you avoid these mistakes by making the causal structure explicit."
 )
 
 st.divider()
@@ -366,8 +445,11 @@ st.divider()
 st.subheader("Interactive: Control for Confounders")
 
 st.markdown(
-    "Select two variables and a potential confounder. We show the correlation "
-    "before and after controlling for the confounder."
+    "Now you can test any pair of weather variables and see what happens when you control "
+    "for a potential confounder. The 'overall correlation' is what you see in the raw data. "
+    "The 'partial correlation' is what remains after removing the confounder's influence "
+    "(by regressing both variables on the confounder and correlating the residuals). "
+    "If the partial correlation is much weaker, the confounder was driving the relationship."
 )
 
 conf_cols = ["temperature_c", "relative_humidity_pct", "wind_speed_kmh", "surface_pressure_hpa"]
@@ -437,13 +519,16 @@ with col_res1:
 
     if abs(r_partial) < abs(r_overall) * 0.8:
         st.success(
-            f"Controlling for {confounder_type} **reduces** the correlation, "
-            "suggesting it is a confounder!"
+            f"Controlling for {confounder_type} **reduces** the correlation from "
+            f"|{r_overall:.3f}| to |{r_partial:.3f}|. This suggests {confounder_type} "
+            "is confounding the relationship -- it was driving at least part of the "
+            "observed correlation."
         )
     else:
         st.info(
             f"Controlling for {confounder_type} does not substantially reduce "
-            "the correlation. It may not be a strong confounder for this pair."
+            "the correlation. It may not be a strong confounder for this variable pair. "
+            "Try a different confounder -- or the relationship may be genuinely direct."
         )
 
 with col_res2:
@@ -508,32 +593,69 @@ st.divider()
 # 8. Quiz
 # ---------------------------------------------------------------------------
 quiz(
-    "If temperature and humidity are correlated with r = -0.5, can we conclude "
-    "that increasing temperature causes humidity to decrease?",
+    "In our weather data, temperature and humidity are correlated with r = -0.45 overall. "
+    "But within each season, the correlation is only r = -0.15. What does this tell us?",
     [
-        "Yes, the strong correlation proves causation",
-        "Yes, because the p-value would be significant",
-        "No, the correlation could be driven by a confounder like season",
-        "No, because the correlation is negative",
+        "The overall correlation is wrong and should be discarded",
+        "Season is confounding the relationship -- much of the r = -0.45 was driven by "
+        "comparing hot summers against cold winters, not by a within-season relationship",
+        "The seasonal data has too few samples to be reliable",
+        "Humidity must be causing temperature changes",
     ],
-    correct_idx=2,
-    explanation="Correlation does not imply causation. A confounder like season can "
-                "create a correlation between variables without a direct causal link.",
+    correct_idx=1,
+    explanation="The drop from r = -0.45 to r = -0.15 when controlling for season is the "
+                "smoking gun of confounding. The overall correlation mixed together summer "
+                "(hot, drier) and winter (cold, more humid) data, creating an artificially strong "
+                "negative slope. Within any single season, temperature and humidity vary together "
+                "much less strongly, because you have removed the between-season variation that "
+                "was driving the correlation. The r = -0.15 within-season is the 'true' "
+                "within-season relationship; the r = -0.45 was inflated by the confounder.",
     key="ch60_quiz1",
 )
 
 quiz(
-    "In Simpson's paradox:",
+    "You find that the overall correlation between temperature and wind speed is r = 0.10 "
+    "across all cities. But in Los Angeles, the correlation is r = -0.25, and in Dallas it "
+    "is r = 0.30. This is an example of:",
     [
-        "The sample size is too small to detect a real effect",
-        "A trend in aggregated data reverses when the data is split by a grouping variable",
-        "Two variables are perfectly correlated",
-        "The data contains missing values",
+        "Measurement error in the wind speed sensor",
+        "Simpson's paradox -- the subgroup trends differ from (and in one case reverse) "
+        "the aggregate trend due to geographic confounding",
+        "A normal statistical fluctuation with no deeper meaning",
+        "Evidence that temperature causes wind",
     ],
     correct_idx=1,
-    explanation="Simpson's paradox occurs when a trend in aggregated data reverses or "
-                "disappears in subgroups, usually due to a confounding variable.",
+    explanation="This is Simpson's paradox in action. Los Angeles gets sea breezes that bring "
+                "cool air and wind from the ocean -- cooler days are windier there (negative "
+                "correlation). Dallas, far inland, gets hot dry winds from the southwest in summer "
+                "-- hotter days are windier there (positive correlation). When you mix the two "
+                "cities, the opposing effects partially cancel, giving a weak overall r = 0.10 "
+                "that hides two strong but opposite city-level patterns. The aggregate number is "
+                "technically correct but misleading -- the real story is at the city level.",
     key="ch60_quiz2",
+)
+
+quiz(
+    "A data scientist builds a model predicting humidity from temperature alone. It achieves "
+    "R-squared = 0.20 on test data. They conclude: 'temperature explains 20% of humidity "
+    "variation.' Is this interpretation correct?",
+    [
+        "Yes -- R-squared directly measures causal explanation",
+        "No -- R-squared measures predictive association, not causal explanation. Much of that "
+        "20% might come from season confounding both variables, not from temperature directly "
+        "affecting humidity",
+        "No -- 20% is too low to draw any conclusions",
+        "Yes -- because the model used test data, not training data",
+    ],
+    correct_idx=1,
+    explanation="R-squared measures how well temperature *predicts* humidity, which includes "
+                "both direct causal effects and indirect paths through confounders. If season "
+                "drives both variables, then temperature can predict humidity (because both "
+                "co-vary with season) without temperature actually *causing* humidity changes. "
+                "To estimate the causal effect of temperature on humidity, you would need to "
+                "control for season (and other confounders) first. The partial R-squared after "
+                "controlling for confounders would be the right measure of the direct relationship.",
+    key="ch60_quiz3",
 )
 
 st.divider()
@@ -542,11 +664,20 @@ st.divider()
 # 9. Takeaways
 # ---------------------------------------------------------------------------
 takeaways([
-    "Correlation measures association, not causation. Confounders can create spurious correlations.",
-    "DAGs encode causal assumptions and help identify confounders, mediators, and colliders.",
-    "Controlling for a confounder (via stratification or partial correlation) can reveal the true relationship.",
-    "Simpson's paradox shows that aggregate trends can reverse in subgroups.",
-    "Weather provides excellent examples: season confounds many variable relationships.",
+    "Correlation measures statistical association, not causation. In our weather data, "
+    "temperature and humidity correlate at r = {:.3f} -- but season drives both. Controlling "
+    "for season reveals a much weaker (or different) relationship.".format(overall_r),
+    "Confounders are third variables that drive both the 'cause' and the 'effect.' Season is "
+    "the classic weather confounder: it makes temperature and humidity move together without "
+    "either one directly causing changes in the other.",
+    "Simpson's paradox happens when aggregate trends reverse in subgroups. Pooling data across "
+    "cities with different climates can create overall correlations that no individual city "
+    "exhibits. Always check subgroups before trusting an aggregate trend.",
+    "DAGs make causal assumptions explicit. Drawing arrows between weather variables forces "
+    "you to state your causal beliefs and identifies which confounders to control for.",
+    "Controlling for a confounder (via stratification or partial correlation) can dramatically "
+    "change the observed relationship. If controlling for season shrinks r from -0.45 to -0.15, "
+    "season was doing most of the work.",
 ])
 
 navigation(

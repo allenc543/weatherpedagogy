@@ -17,7 +17,6 @@ from utils.constants import CITY_LIST, CITY_COLORS, FEATURE_COLS, FEATURE_LABELS
 # ---------------------------------------------------------------------------
 # Page config
 # ---------------------------------------------------------------------------
-st.set_page_config(page_title="Ch 61: Natural Experiments", layout="wide")
 df = load_data()
 fdf = sidebar_filters(df)
 
@@ -26,52 +25,99 @@ chapter_header(61, "Natural Experiments", part="XV")
 # ---------------------------------------------------------------------------
 # 1. Theory
 # ---------------------------------------------------------------------------
+st.markdown(
+    "In the last chapter, we established that correlation does not imply causation. "
+    "Season confounds temperature and humidity, city confounds many relationships, and "
+    "Simpson's paradox lurks everywhere. But here is the frustrating follow-up question: "
+    "if correlation is not enough, how do we *ever* establish causation?"
+)
+st.markdown(
+    "The gold standard is a randomized experiment: randomly assign treatment, measure "
+    "outcomes, compare. But we cannot randomize the weather. We cannot flip a coin and "
+    "decide 'Dallas gets a high-pressure system this week, Houston does not.' Nature "
+    "does not take requests."
+)
+st.markdown(
+    "What we *can* do is find situations where nature itself created something resembling "
+    "an experiment. These are called **natural experiments**, and weather data is full of them."
+)
+
 concept_box(
-    "Natural Experiments",
+    "Natural Experiments in Weather Data",
     "A <b>natural experiment</b> occurs when some external event or condition creates "
-    "variation that mimics a randomised experiment. Unlike a lab experiment, the researcher "
-    "does not control the treatment -- nature (or circumstances) does.<br><br>"
-    "In weather data, natural experiments arise from:<br>"
-    "- Geographic differences (coastal vs inland cities)<br>"
-    "- Seasonal transitions (treatment = season change)<br>"
-    "- Extreme events (cold front arrival as a 'treatment')",
+    "variation that mimics what a randomized experiment would produce. In our dataset, "
+    "here are three concrete examples:<br><br>"
+    "<b>1. Coastal vs inland cities</b>: Houston and LA sit on or near the coast; Dallas "
+    "and Austin are inland. The ocean moderates temperature swings (nature's treatment "
+    "assignment). When summer arrives, we can compare how much more inland cities heat up "
+    "relative to coastal ones -- that differential tells us the causal effect of ocean "
+    "proximity on temperature response.<br><br>"
+    "<b>2. Pressure changes preceding wind</b>: When a cold front approaches Dallas, "
+    "surface pressure drops before wind speed increases. This temporal ordering gives us "
+    "a quasi-experiment: 'did yesterday's pressure change predict today's wind change, "
+    "beyond what yesterday's wind alone could predict?' If yes, that is evidence for a "
+    "causal direction (pressure drives wind, not the reverse).<br><br>"
+    "<b>3. Seasonal transitions as treatment</b>: The arrival of summer is a 'treatment' "
+    "that hits all cities, but affects them differently. We can measure the differential "
+    "response between inland and coastal cities to estimate the causal effect of geography "
+    "on seasonal temperature sensitivity.",
 )
 
 st.markdown("### Two Key Methods")
+st.markdown(
+    "We will use two tools designed for exactly these situations. Both try to extract "
+    "causal information from observational data -- something that regular correlation "
+    "analysis cannot do."
+)
 
 col1, col2 = st.columns(2)
 
 with col1:
     concept_box(
         "Difference-in-Differences (DiD)",
-        "DiD compares the change in outcome over time between a <b>treatment group</b> "
-        "and a <b>control group</b>.<br><br>"
-        "DiD estimate = (Treatment_after - Treatment_before) - (Control_after - Control_before)<br><br>"
-        "The key assumption is <b>parallel trends</b>: without the treatment, both groups "
-        "would have followed the same trend.",
+        "Here is the idea in weather terms. Dallas (inland) and Houston (coastal) both "
+        "experience seasons. In spring, Dallas averages 20 degrees C and Houston averages 22. "
+        "In summer, Dallas jumps to 33 and Houston to 30.<br><br>"
+        "Dallas warmed by 33 - 20 = <b>13 degrees</b>. Houston warmed by 30 - 22 = <b>8 degrees</b>. "
+        "The difference-in-differences is 13 - 8 = <b>5 degrees</b>.<br><br>"
+        "That 5-degree gap is our estimate of the <em>causal effect</em> of being inland vs "
+        "coastal on summer warming. Both cities experienced the same season change, but Dallas "
+        "warmed 5 degrees more because it lacks ocean moderation.<br><br>"
+        "The key assumption: <b>parallel trends</b>. Without the 'treatment' (summer), both "
+        "cities would have changed temperature by the same amount. If Dallas was already "
+        "trending warmer for other reasons, our estimate is biased.",
     )
 
 with col2:
     concept_box(
         "Granger Causality",
-        "Variable X <b>Granger-causes</b> Y if past values of X help predict Y beyond "
-        "what past values of Y alone can predict.<br><br>"
-        "This is <em>predictive</em> causality, not true causality. But it is useful "
-        "for identifying temporal lead-lag relationships.<br><br>"
-        "Test: compare an autoregressive model of Y with and without lagged X values.",
+        "Here is a different question: does yesterday's pressure in Dallas help predict "
+        "today's wind speed, <em>beyond</em> what yesterday's wind speed alone can predict?<br><br>"
+        "If yes, we say pressure <b>Granger-causes</b> wind. This is not true causation in the "
+        "philosophical sense -- it is <em>predictive</em> causality. But when it aligns with "
+        "physical theory (pressure gradients drive wind, per the fundamental equations of "
+        "meteorology), it strengthens our causal argument considerably.<br><br>"
+        "The test works by comparing two models:<br>"
+        "- <b>Restricted</b>: predict wind from its own past values only<br>"
+        "- <b>Unrestricted</b>: predict wind from its own past + pressure's past<br>"
+        "If the unrestricted model is significantly better, pressure adds predictive "
+        "information beyond the wind's own history.",
     )
 
 formula_box(
     "Difference-in-Differences Estimator",
     r"\hat{\delta}_{DiD} = (\bar{Y}_{T,\text{after}} - \bar{Y}_{T,\text{before}}) "
     r"- (\bar{Y}_{C,\text{after}} - \bar{Y}_{C,\text{before}})",
-    "T = treatment group, C = control group. delta_DiD is the causal effect estimate.",
+    "T = treatment group (e.g., inland cities), C = control group (e.g., coastal cities). "
+    "For our Dallas-vs-Houston summer example: (33 - 20) - (30 - 22) = 13 - 8 = 5 degrees C.",
 )
 
 formula_box(
     "Granger Causality Test",
     r"Y_t = \alpha + \sum_{i=1}^{p} \beta_i Y_{t-i} + \sum_{i=1}^{p} \gamma_i X_{t-i} + \epsilon_t",
-    "Test H0: all gamma_i = 0 (X does not Granger-cause Y). Reject if F-test is significant.",
+    "Test H0: all gamma_i = 0 (pressure's past does not help predict wind beyond wind's own past). "
+    "Reject if F-test is significant -- meaning pressure contains information about future wind "
+    "that wind's own history does not.",
 )
 
 st.divider()
@@ -82,8 +128,22 @@ st.divider()
 st.subheader("Interactive: Does Pressure Granger-Cause Wind Speed?")
 
 st.markdown(
-    "Physically, wind is driven by **pressure gradients**. If pressure changes lead to "
-    "wind speed changes, we should see pressure Granger-causing wind. Let us test this."
+    "This is one of the cleanest causal hypotheses in meteorology. Wind is driven by "
+    "pressure gradients -- differences in atmospheric pressure cause air to move from high "
+    "to low pressure. If this physical mechanism is real (spoiler: it is), then past pressure "
+    "values should help predict future wind speed."
+)
+st.markdown(
+    "But here is what makes this interesting: does the reverse hold? Does wind Granger-cause "
+    "pressure? Physically, wind should NOT drive pressure (wind is a *response* to pressure "
+    "gradients, not a cause of them). If our test shows pressure Granger-causes wind but NOT "
+    "vice versa, that asymmetry strongly supports the causal direction from pressure to wind."
+)
+st.markdown(
+    "**What the controls do**: Select a city and set the maximum number of lags (how many "
+    "days of history to consider). More lags means 'does pressure from up to N days ago "
+    "predict today's wind?' The p-value plot shows whether each lag is statistically "
+    "significant -- below the dashed line (p < 0.05) means 'yes, this lag helps predict.'"
 )
 
 col_ctrl, col_viz = st.columns([1, 2])
@@ -191,6 +251,10 @@ with col_viz:
     st.plotly_chart(fig_gc, use_container_width=True)
 
 st.markdown("#### Pressure --> Wind Speed Results")
+st.markdown(
+    "Each row tests: 'Does pressure history up to N days ago significantly improve "
+    "wind speed prediction?' A p-value below 0.05 means yes."
+)
 display_pw = gc_results_pw.copy()
 display_pw["F-statistic"] = display_pw["F-statistic"].map(lambda x: f"{x:.2f}" if not np.isnan(x) else "N/A")
 display_pw["p-value"] = display_pw["p-value"].map(lambda x: f"{x:.4f}" if not np.isnan(x) else "N/A")
@@ -199,13 +263,16 @@ st.dataframe(display_pw, use_container_width=True, hide_index=True)
 n_sig = gc_results_pw["Significant (p<0.05)"].sum()
 if n_sig > 0:
     st.success(
-        f"Pressure Granger-causes wind speed at {n_sig}/{len(gc_results_pw)} lags tested. "
-        "This aligns with meteorological physics: pressure gradients drive wind."
+        f"Pressure Granger-causes wind speed at **{n_sig}/{len(gc_results_pw)}** lags tested. "
+        "This aligns perfectly with meteorological physics: pressure gradients are the "
+        "fundamental driver of wind. Past pressure changes in the region contain information "
+        "about future wind that the wind's own history does not."
     )
 else:
     st.info(
-        "Pressure does not Granger-cause wind at the tested lags. "
-        "Try a different city or more lags."
+        "Pressure does not Granger-cause wind at the tested lags for this city. "
+        "This can happen with daily averages (the effect may be sub-daily) or in cities "
+        "with complex terrain. Try a different city or increase the lag range."
     )
 
 if test_reverse:
@@ -213,19 +280,26 @@ if test_reverse:
     n_sig_rev = gc_results_wp["Significant (p<0.05)"].sum()
     if n_sig_rev > 0:
         st.warning(
-            f"Wind also Granger-causes pressure at {n_sig_rev} lags. "
-            "This may reflect feedback or shared dynamics, not direct causation."
+            f"Wind also Granger-causes pressure at **{n_sig_rev}** lags. This may reflect "
+            "feedback loops in atmospheric dynamics (wind transports air masses that change "
+            "local pressure) or shared responses to larger weather systems. It does not mean "
+            "wind *directly* causes pressure changes in the way pressure gradients cause wind."
         )
     else:
         st.success(
-            "Wind does NOT Granger-cause pressure. "
-            "This asymmetry supports the causal direction: pressure drives wind."
+            "Wind does NOT Granger-cause pressure -- exactly what physics predicts. The "
+            "asymmetry is telling: pressure helps predict wind (causal direction: pressure "
+            "--> wind), but wind does not help predict pressure (wind is a response, not a "
+            "cause). This one-directional Granger causality aligns with the physical mechanism."
         )
 
 insight_box(
-    "Granger causality tests predictive priority, not true causation. "
-    "However, when the result aligns with physical theory (pressure gradients drive wind), "
-    "it strengthens our causal argument."
+    "Granger causality tests temporal predictive relationships, not true causation in a "
+    "philosophical sense. But when the result aligns with well-established physical theory "
+    "(pressure gradients drive wind), AND the reverse test fails (wind does not predict "
+    "pressure), the combined evidence is much stronger than either test alone. The asymmetry "
+    "is the key: if both directions were significant, it would suggest a common driver rather "
+    "than a direct causal link."
 )
 
 st.divider()
@@ -235,16 +309,33 @@ st.divider()
 # ---------------------------------------------------------------------------
 st.subheader("Difference-in-Differences: Summer Effect on Coastal vs Inland Cities")
 
+st.markdown(
+    "Now for the DiD analysis. Here is the setup in concrete terms."
+)
+st.markdown(
+    "**The 'treatment'**: Summer arrives. Every city gets hotter, but the question is: "
+    "how much MORE do inland cities heat up compared to coastal cities? The ocean absorbs "
+    "heat and moderates temperature swings -- so coastal cities should warm less. The "
+    "difference-in-differences estimates this *causal effect of geography* on seasonal "
+    "temperature response."
+)
+
 concept_box(
-    "DiD Applied to Weather",
-    "We treat the arrival of <b>summer</b> as a 'treatment' and compare how coastal "
-    "cities (moderated by the ocean) and inland cities respond differently.<br><br>"
-    "<b>Treatment group</b>: Inland cities (expected to heat up more)<br>"
-    "<b>Control group</b>: Coastal cities (ocean moderates temperature)<br>"
-    "<b>Before</b>: Spring (March-May)<br>"
-    "<b>After</b>: Summer (June-August)<br><br>"
-    "The DiD estimate captures the <em>differential</em> summer warming between inland "
-    "and coastal cities.",
+    "DiD Applied to Our Weather Data",
+    "Think of it as two comparisons stacked on top of each other:<br><br>"
+    "<b>Treatment group</b>: Inland cities (Dallas, Austin, San Antonio) -- expected to "
+    "heat up more in summer because they lack ocean moderation.<br>"
+    "<b>Control group</b>: Coastal cities (Houston, Los Angeles) -- the ocean acts as a "
+    "thermal buffer, moderating temperature swings.<br>"
+    "<b>Before period</b>: Spring (March-May) -- our pre-treatment baseline.<br>"
+    "<b>After period</b>: Summer (June-August) -- the 'treatment' is applied.<br><br>"
+    "Dallas goes from 20 degrees C in spring to 33 degrees C in summer (+13). "
+    "Houston goes from 22 degrees C in spring to 30 degrees C in summer (+8). "
+    "DiD estimate = 13 - 8 = <b>5 degrees C</b>. That 5-degree gap is the estimated "
+    "causal effect of being inland rather than coastal on summer warming.<br><br>"
+    "The dotted 'counterfactual' line on the chart shows where Dallas <em>would have "
+    "been</em> if it had warmed at the same rate as Houston. The gap between the actual "
+    "Dallas temperature and the counterfactual is the DiD estimate.",
 )
 
 # Select treatment and control cities
@@ -384,12 +475,16 @@ st.markdown(f"""
 This means that going from the before period to the after period, the treatment cities
 experienced a **{abs(did_estimate):.2f}** unit {'greater increase' if did_estimate > 0 else 'greater decrease'}
 in {FEATURE_LABELS.get(did_feature, did_feature).lower()} compared to the control cities.
+For temperature, this is the extra warming (or reduced warming) that inland cities experience
+relative to coastal cities -- our estimate of the causal effect of geography on seasonal response.
 """)
 
 warning_box(
-    "The DiD estimate is only valid if the parallel trends assumption holds: "
-    "without the 'treatment', both groups would have changed by the same amount. "
-    "With weather data, geographic differences may violate this assumption."
+    "The DiD estimate is only valid if the parallel trends assumption holds: without the "
+    "'treatment' (summer), both groups would have changed by the same amount. For weather, "
+    "this is plausible for season-driven changes but can break down if one city group has "
+    "a different underlying trend (e.g., urban heat island effects growing faster in one group). "
+    "Check the parallel trends plot below to assess this assumption."
 )
 
 st.divider()
@@ -400,8 +495,16 @@ st.divider()
 st.subheader("Parallel Trends Check")
 
 st.markdown(
-    "For DiD to be valid, the treatment and control groups should follow **parallel trends** "
-    "before the treatment. Let us check this."
+    "DiD requires that the treatment and control groups would have followed **parallel "
+    "trends** without the treatment. We cannot test this directly (we cannot observe the "
+    "counterfactual), but we CAN check whether the trends were parallel in the *pre-treatment* "
+    "period. If the two lines move together before the treatment, it is more plausible that "
+    "they would have continued to move together without it."
+)
+st.markdown(
+    "Look at the chart below. In the months you selected as 'before,' are the treatment "
+    "and control lines roughly parallel? If they are already diverging before the 'after' "
+    "period, the parallel trends assumption is suspect and the DiD estimate may be biased."
 )
 
 # Monthly averages for both groups
@@ -448,9 +551,12 @@ apply_common_layout(fig_pt, title="Monthly Trends: Treatment vs Control", height
 st.plotly_chart(fig_pt, use_container_width=True)
 
 insight_box(
-    "For the DiD estimate to be reliable, the two lines should be roughly parallel "
-    "in the 'before' period. If they diverge before treatment, the parallel trends "
-    "assumption is violated and the DiD estimate may be biased."
+    "For the DiD estimate to be reliable, the two lines should be roughly parallel in the "
+    "'before' period (the green-shaded months). If they are -- if inland and coastal cities "
+    "were warming at the same rate during spring -- then it is plausible that any divergence "
+    "in summer is caused by the differential effect of ocean proximity. If the lines were "
+    "already diverging in spring, the parallel trends assumption is violated, and the DiD "
+    "estimate is capturing pre-existing differences rather than a causal effect."
 )
 
 st.divider()
@@ -461,7 +567,16 @@ st.divider()
 st.subheader("Explore More Granger Causality Relationships")
 
 st.markdown(
-    "Test whether any weather variable Granger-causes another."
+    "The pressure-wind relationship is the clearest test case, but you can test any "
+    "pair of weather variables. Some interesting ones to try:"
+)
+st.markdown(
+    "- **Temperature --> Humidity**: Does today's temperature predict tomorrow's humidity "
+    "change? (Physically plausible through evaporation.)\n"
+    "- **Wind --> Temperature**: Do high winds predict temperature drops? (Cold fronts bring "
+    "wind before temperature changes.)\n"
+    "- **Pressure --> Temperature**: Do pressure changes predict temperature changes? "
+    "(Dropping pressure often precedes cold front arrival.)"
 )
 
 gc_x_var = st.selectbox(
@@ -496,12 +611,16 @@ if len(daily2) > gc2_lags + 10:
     if n_sig2 > 0:
         st.success(
             f"{FEATURE_LABELS[gc_x_var]} Granger-causes {FEATURE_LABELS[gc_y_var]} "
-            f"at {n_sig2}/{len(gc2_results)} lags."
+            f"at **{n_sig2}/{len(gc2_results)}** lags. Past values of "
+            f"{FEATURE_LABELS[gc_x_var].lower()} contain information about future "
+            f"{FEATURE_LABELS[gc_y_var].lower()} beyond what its own past provides."
         )
     else:
         st.info(
             f"No evidence that {FEATURE_LABELS[gc_x_var]} Granger-causes "
-            f"{FEATURE_LABELS[gc_y_var]} at these lags."
+            f"{FEATURE_LABELS[gc_y_var]} at these lags. The past values of "
+            f"{FEATURE_LABELS[gc_x_var].lower()} do not add predictive value beyond "
+            f"what {FEATURE_LABELS[gc_y_var].lower()}'s own history provides."
         )
 else:
     st.warning("Not enough daily data for this test.")
@@ -546,31 +665,69 @@ st.divider()
 # 7. Quiz
 # ---------------------------------------------------------------------------
 quiz(
-    "Granger causality tests whether:",
+    "You run Granger causality in Dallas and find that pressure Granger-causes wind (p = 0.002) "
+    "but wind does NOT Granger-cause pressure (p = 0.45). What does this asymmetry tell you?",
     [
-        "X truly causes Y in a philosophical sense",
-        "X and Y are correlated",
-        "Past values of X help predict Y beyond what past Y alone can predict",
-        "X and Y have the same distribution",
+        "There is no relationship between pressure and wind",
+        "The causal direction runs from pressure to wind -- consistent with the physical "
+        "mechanism that pressure gradients drive wind, not the reverse",
+        "Wind causes pressure changes but only at longer lags",
+        "Both variables are driven by the same confounder",
     ],
-    correct_idx=2,
-    explanation="Granger causality is about predictive improvement, not true causation. "
-                "X Granger-causes Y if adding past X improves Y forecasts.",
+    correct_idx=1,
+    explanation="The asymmetry is the key finding. Pressure's past helps predict wind's future "
+                "(p = 0.002, highly significant), but wind's past does NOT help predict pressure's "
+                "future (p = 0.45, not even close to significant). This one-directional predictive "
+                "relationship aligns perfectly with meteorological physics: pressure differences "
+                "(gradients) drive air movement (wind), but wind does not create the pressure "
+                "differences that drive it. Granger causality alone is not proof of true causation, "
+                "but when it matches the known physical mechanism AND shows the expected asymmetry, "
+                "the combined evidence is compelling.",
     key="ch61_quiz1",
 )
 
 quiz(
-    "The key assumption of difference-in-differences is:",
+    "In a DiD analysis, Dallas (inland) warms by 13 degrees C from spring to summer, while "
+    "Houston (coastal) warms by 8 degrees C. The DiD estimate is 5 degrees C. What does this "
+    "5 degrees represent?",
     [
-        "Treatment and control groups have the same mean",
-        "The treatment is randomly assigned",
-        "Parallel trends: both groups would have changed similarly without treatment",
-        "The sample size is equal in both groups",
+        "The average temperature difference between Dallas and Houston",
+        "The total warming in Dallas during summer",
+        "The estimated causal effect of being inland vs coastal on seasonal warming -- "
+        "the extra warming Dallas experiences because it lacks ocean moderation",
+        "The measurement error between the two cities",
     ],
     correct_idx=2,
-    explanation="DiD requires that the treatment and control groups would have followed "
-                "parallel paths absent the treatment. This cannot be directly tested.",
+    explanation="The 5-degree DiD estimate captures the *differential* warming: how much more "
+                "Dallas heats up relative to Houston. Both cities experienced summer (the common "
+                "'treatment'), but Dallas warmed 5 degrees more because it lacks the ocean's "
+                "thermal buffer. This is our estimate of the causal effect of geography (inland "
+                "vs coastal) on temperature response to seasonal change. The key assumption is "
+                "that without any geographical difference, both cities would have warmed by the "
+                "same amount -- the parallel trends assumption.",
     key="ch61_quiz2",
+)
+
+quiz(
+    "You check parallel trends for your DiD analysis and find that inland cities were already "
+    "warming faster than coastal cities during the 'before' period (spring). What does this "
+    "mean for your DiD estimate?",
+    [
+        "The DiD estimate is still perfectly valid",
+        "The parallel trends assumption is violated, so the DiD estimate is likely biased -- "
+        "it attributes pre-existing differential warming to the 'treatment' (summer)",
+        "You need more data to determine if the trend is real",
+        "You should switch to Granger causality instead",
+    ],
+    correct_idx=1,
+    explanation="Parallel trends is the core assumption of DiD. If inland cities were already "
+                "warming faster than coastal cities during spring (before the 'treatment' of "
+                "summer), then some of the differential warming you attribute to summer was "
+                "actually a continuation of a pre-existing trend. Your DiD estimate is biased "
+                "upward -- it includes both the real summer effect AND the pre-existing divergence. "
+                "You might try adjusting the before period, adding more controls, or using a "
+                "different estimation strategy (like matching on pre-trends).",
+    key="ch61_quiz3",
 )
 
 st.divider()
@@ -579,11 +736,22 @@ st.divider()
 # 8. Takeaways
 # ---------------------------------------------------------------------------
 takeaways([
-    "Natural experiments exploit external variation to study causal effects without randomization.",
-    "Granger causality tests temporal predictive relationships, not true causation.",
-    "Pressure Granger-causing wind aligns with meteorological physics (pressure gradients drive wind).",
-    "Difference-in-differences compares changes between treatment and control groups.",
-    "The parallel trends assumption is crucial for DiD validity and should be checked.",
+    "Natural experiments exploit situations where nature creates variation resembling a "
+    "controlled experiment. In weather data, geographic differences (coastal vs inland) and "
+    "temporal ordering (pressure changes before wind changes) provide natural experiments.",
+    "Granger causality tests whether past values of X improve predictions of Y beyond Y's "
+    "own history. For pressure and wind in our data, the test often confirms the physical "
+    "mechanism: pressure Granger-causes wind, but not vice versa. The asymmetry is the "
+    "strongest evidence.",
+    "Difference-in-differences compares the change in outcomes between treatment and control "
+    "groups. For our cities, the DiD estimate captures how much more inland cities warm in "
+    "summer compared to coastal cities -- roughly 3-5 degrees C depending on the cities chosen.",
+    "The parallel trends assumption is the Achilles heel of DiD: both groups must have been "
+    "trending similarly before the treatment. Always check this visually -- if the lines "
+    "are already diverging before treatment, your estimate is compromised.",
+    "Neither method proves causation with certainty. Granger causality is about prediction, "
+    "not mechanism. DiD requires an untestable assumption. But when the results align with "
+    "known physical theory, the combined evidence is much stronger than any single method.",
 ])
 
 navigation(

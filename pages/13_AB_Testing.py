@@ -18,7 +18,6 @@ from utils.constants import (
 )
 
 # ---------------------------------------------------------------------------
-st.set_page_config(page_title="Ch 13: A/B Testing", layout="wide")
 df = load_data()
 fdf = sidebar_filters(df)
 

@@ -16,55 +16,92 @@ from utils.constants import CITY_LIST, CITY_COLORS, FEATURE_COLS, FEATURE_LABELS
 # ---------------------------------------------------------------------------
 # Page config
 # ---------------------------------------------------------------------------
-st.set_page_config(page_title="Ch 54: Bayes' Theorem", layout="wide")
 df = load_data()
 fdf = sidebar_filters(df)
 
 chapter_header(54, "Bayes' Theorem", part="XIII")
 
+st.markdown(
+    "Let me start with a concrete puzzle, because Bayes' theorem is one of those ideas "
+    "that is simultaneously trivial and profound, and the only way to see why is to work "
+    "through a specific example."
+)
+st.markdown(
+    "**The puzzle**: Your friend hands you a weather reading -- temperature 35.0 C and "
+    "humidity 30%. They tell you it came from one of our 6 cities (Dallas, Houston, Austin, "
+    "San Antonio, NYC, or LA) but will not tell you which one. Can you figure it out?"
+)
+st.markdown(
+    "Your first instinct might be: 'Just check which city's average temperature is "
+    "closest to 35 C.' That is reasonable, but it ignores crucial information. What if "
+    "35 C is common in both Dallas and Houston but the 30% humidity is very unusual for "
+    "Houston (which averages ~65% humidity) and totally normal for Dallas in summer? "
+    "The humidity narrows it down in a way that temperature alone cannot. Bayes' theorem "
+    "gives us a *principled, mechanical* procedure for combining all this information."
+)
+st.markdown(
+    "**Why this matters beyond a parlor game**: This is exactly the logic behind spam "
+    "filters, medical diagnosis, weather model calibration, and any system that needs to "
+    "update its beliefs based on evidence. The same machinery that identifies cities from "
+    "weather readings can tell you whether a patient has a disease given a test result, "
+    "or whether a forecast model should be trusted given recent observations."
+)
+
 # ---------------------------------------------------------------------------
 # 1. Theory
 # ---------------------------------------------------------------------------
+st.markdown("### The Mechanics, Step by Step")
+
+st.markdown(
+    "Let me walk through the calculation for our specific puzzle before introducing any "
+    "formal notation."
+)
+st.markdown(
+    "**Step 1 -- Prior belief**: Before looking at the numbers, what do you believe? If "
+    "you have no idea which city it came from, you give each city equal probability: "
+    "1/6 = 16.7%. This is your **prior**."
+)
+st.markdown(
+    "**Step 2 -- Check the evidence against each city**: Now look at the data: 35 C, 30% "
+    "humidity. For each city, ask: 'How typical is this reading?' Dallas averages ~20 C "
+    "with std ~10 C, so 35 C is 1.5 standard deviations above average -- unusual but "
+    "not crazy. NYC averages ~13 C with std ~10 C, so 35 C is 2.2 standard deviations "
+    "above -- very unusual. This 'how typical is the evidence for each city' is the "
+    "**likelihood**."
+)
+st.markdown(
+    "**Step 3 -- Combine**: Multiply each city's prior by its likelihood. Dallas might "
+    "get 0.167 * 0.0032 = 0.00053. NYC might get 0.167 * 0.00004 = 0.0000067. Dallas's "
+    "number is 80 times bigger, so Dallas is 80 times more likely."
+)
+st.markdown(
+    "**Step 4 -- Normalize**: Make the probabilities sum to 1 by dividing each city's "
+    "score by the total. This gives you the **posterior** -- your updated belief about "
+    "which city produced this reading."
+)
+
 concept_box(
     "Bayes' Theorem",
-    "Bayes' theorem is what happens when you actually take the base rate seriously, "
-    "which is something humans are famously terrible at. It tells us how to "
-    "<b>update beliefs</b> when we observe new evidence -- a process that sounds trivial "
-    "until you realize almost nobody does it correctly by default.<br><br>"
-    "Given a hypothesis H and observed evidence E:<br><br>"
+    "Now the formal version. Given a hypothesis H (the reading came from city i) and "
+    "observed evidence E (temperature 35 C, humidity 30%):<br><br>"
     "P(H | E) = P(E | H) * P(H) / P(E)<br><br>"
-    "<b>Prior</b> P(H): what you believed before seeing any data. Your starting guess, "
-    "which can be wrong and that is fine.<br>"
-    "<b>Likelihood</b> P(E | H): if your hypothesis were true, how probable is the evidence "
-    "you actually observed? This is the part that does the heavy lifting.<br>"
-    "<b>Posterior</b> P(H | E): your updated belief after seeing the data. The whole point.<br>"
-    "<b>Evidence</b> P(E): the total probability of observing the evidence across all hypotheses. "
-    "Mostly serves as a normalising constant so the numbers add up to 1.",
+    "<b>Prior</b> P(H): what you believed before seeing the data. Started at 1/6 for each "
+    "city. Could be wrong, and that is fine -- Bayes' theorem is self-correcting.<br>"
+    "<b>Likelihood</b> P(E | H): if this reading came from Dallas, how probable is 35 C "
+    "and 30% humidity? This is the part that does the heavy lifting.<br>"
+    "<b>Posterior</b> P(H | E): your updated belief. The answer to 'which city?' after "
+    "incorporating the evidence.<br>"
+    "<b>Evidence</b> P(E): the total probability of seeing 35 C, 30% humidity across all "
+    "cities. This is just a normalizing constant so the posteriors sum to 1.",
 )
 
 formula_box(
     "Bayes' Theorem",
     r"P(H_i \mid E) = \frac{P(E \mid H_i) \, P(H_i)}{\sum_j P(E \mid H_j) \, P(H_j)}",
-    "The denominator sums over all hypotheses to ensure the posterior probabilities add to 1. "
-    "This is bookkeeping, not deep philosophy, but it is bookkeeping that matters.",
+    "The denominator sums over all hypotheses (all 6 cities) to ensure the posterior "
+    "probabilities add to 1. It is bookkeeping, not deep philosophy, but it is bookkeeping "
+    "that matters -- without it your probabilities would not be probabilities.",
 )
-
-st.markdown("""
-### Intuition with Weather Data
-
-Here is a game. You receive a weather reading -- temperature and humidity -- but you
-**don't know which city** it came from. Can you figure out the city using Bayes' theorem?
-
-It turns out you can, and the reasoning is delightfully mechanical:
-
-- **Hypothesis**: the reading came from city *i*
-- **Evidence**: the observed temperature and humidity values
-- **Prior**: your initial belief about which city (start with equal chances if you have no clue)
-- **Likelihood**: how typical are these readings for each city, based on historical data?
-- **Posterior**: your updated probability for each city after seeing the evidence
-
-The beautiful thing is that this works even if your prior is terrible. But I am getting ahead of myself.
-""")
 
 st.divider()
 
@@ -74,9 +111,22 @@ st.divider()
 st.subheader("Interactive: Identify the City from Weather Readings")
 
 st.markdown(
-    "Set the observed temperature and humidity below, and watch Bayes' theorem do its thing. "
-    "We will compute P(city | features) step by step, so you can see exactly where the "
-    "information comes from."
+    "Now try it yourself. Set the observed temperature and humidity below, and watch "
+    "Bayes' theorem process the evidence step by step."
+)
+st.markdown(
+    "**What the controls do:** The temperature and humidity sliders set the observed "
+    "weather reading. The prior type controls your starting belief: 'uniform' means no "
+    "prior opinion (equal probability for each city), 'proportional to data count' means "
+    "you believe cities appear in proportion to how many readings they have in our dataset, "
+    "and 'custom' lets you set any prior you want."
+)
+st.markdown(
+    "**What to look for:** Watch how the posterior shifts as you move the sliders. "
+    "At 35 C / 30% humidity, Dallas or San Antonio should dominate (hot, dry Texas). "
+    "At 5 C / 80% humidity, NYC should light up (cold, humid winter). At 22 C / 45%, "
+    "LA should score well (mild, moderate). Notice how the posterior is not just the "
+    "likelihood -- the prior matters too, especially when the likelihoods are similar."
 )
 
 col_ctrl, col_viz = st.columns([1, 2])
@@ -208,6 +258,14 @@ with col_viz:
     fig.update_yaxes(range=[0, 1.15], row=1, col=3)
     st.plotly_chart(fig, use_container_width=True)
 
+st.markdown(
+    "**Reading the three panels:** The left panel shows your prior belief (starting point). "
+    "The middle panel shows the likelihood -- how compatible the observed reading is with "
+    "each city's historical weather. The right panel shows the posterior -- your updated "
+    "belief after combining prior and likelihood. The posterior is the *product* of the "
+    "first two panels, normalized to sum to 1."
+)
+
 # Detail table
 st.markdown("#### Calculation Details")
 detail_rows = []
@@ -229,10 +287,13 @@ st.dataframe(detail_df, use_container_width=True, hide_index=True)
 
 most_likely = max(posteriors, key=posteriors.get)
 insight_box(
-    f"Given temp={obs_temp} deg C and humidity={obs_hum}%, the most likely city is "
+    f"Given temp = {obs_temp} C and humidity = {obs_hum}%, the most likely city is "
     f"**{most_likely}** with posterior probability {posteriors[most_likely]:.1%}. "
-    "Notice how the posterior is not just the likelihood -- it is the likelihood "
-    "weighted by the prior, then normalised. Every piece plays a role."
+    f"Look at the detail table: {most_likely} has the highest likelihood (the observed "
+    f"reading is most consistent with its historical weather patterns), and after "
+    f"multiplying by the prior and normalizing, it dominates the posterior. Try moving "
+    f"the temperature to 5 C and humidity to 80% -- NYC should jump to the top because "
+    f"cold, humid readings are typical there and rare in Texas."
 )
 
 st.divider()
@@ -242,21 +303,40 @@ st.divider()
 # ---------------------------------------------------------------------------
 st.subheader("Sequential Bayesian Updating")
 
+st.markdown(
+    "Here is the genuinely magical property of Bayes' theorem that makes it so powerful "
+    "in practice: you can process evidence **one observation at a time**, and the result "
+    "is mathematically identical to processing it all at once."
+)
+st.markdown(
+    "The posterior from observation #1 becomes the prior for observation #2. Then the "
+    "posterior from observation #2 becomes the prior for observation #3. And so on. "
+    "This is not an approximation. It is mathematically exact. And it means Bayesian "
+    "reasoning is inherently *incremental* -- you never have to start over when new "
+    "data arrives."
+)
+
 concept_box(
     "Sequential Updating",
-    "Here is the genuinely magical thing about Bayesian inference: you can process evidence "
-    "<b>one observation at a time</b>, and you get the same answer as if you processed it "
-    "all at once. The posterior from observation #1 becomes the prior for observation #2, "
-    "and so on. This is not an approximation. It is mathematically exact.<br><br>"
-    "This means Bayesian reasoning is inherently <em>incremental</em>. You never have to "
-    "start over. New data? Just update. It is the ideal framework for a world where "
-    "information arrives continuously.",
+    "Imagine you are trying to identify a mystery city from a stream of temperature "
+    "readings arriving one per hour. After the first reading (22.5 C), you update your "
+    "beliefs. Maybe Dallas and Houston are tied. After the second reading (23.1 C), "
+    "you update again -- now Dallas pulls slightly ahead. After reading #10 (31.2 C), "
+    "if the readings keep looking like Dallas's distribution, Dallas's probability is "
+    "now 0.85 and climbing.<br><br>"
+    "The math is simple: <b>posterior_1 becomes prior_2</b>. posterior_2 becomes "
+    "prior_3. Each observation tightens your belief. Eventually, one city pulls so "
+    "far ahead that you are effectively certain -- and you got there one observation "
+    "at a time.",
 )
 
 st.markdown(
-    "Watch how the posterior evolves as we observe temperature readings one by one "
-    "from a secretly selected city. Notice how the model gets more and more confident "
-    "as evidence accumulates -- or occasionally gets confused, which is also instructive."
+    "**What the controls do:** 'Secret city' is the city from which we draw temperature "
+    "readings. 'Number of sequential observations' controls how many readings the model "
+    "sees. **What to look for:** Watch the secret city's probability line climb toward 1.0 "
+    "as evidence accumulates. How many observations does it take to be 90% confident? "
+    "Cities with distinctive temperatures (NYC, LA) are identified faster than cities with "
+    "similar temperatures (Dallas vs Houston)."
 )
 
 seq_city = st.selectbox("Secret city (for demonstration)", CITY_LIST, key="bt_seq_city")
@@ -316,14 +396,19 @@ else:
     st.warning(
         f"After {n_obs} observations, the model guesses **{final_guess}** "
         f"({current_prior[final_guess]:.1%}) but the true city is **{seq_city}** "
-        f"({current_prior[seq_city]:.1%}). Try adding more observations."
+        f"({current_prior[seq_city]:.1%}). This happens when the secret city's temperatures "
+        f"are similar to another city's. Try adding more observations -- the correct city "
+        f"will eventually win as evidence accumulates."
     )
 
 insight_box(
     "Sequential updating is mathematically equivalent to batch updating -- you get the "
-    "same answer either way. But watching it happen step by step reveals something important: "
-    "the posterior converges to the true city as evidence accumulates, regardless of the prior. "
-    "The data eventually speaks for itself."
+    "same answer either way. But watching it step by step reveals something important: "
+    "the speed of convergence depends on how distinctive the city's weather is. NYC "
+    "(mean ~13 C) is identified quickly because its temperatures are very different from "
+    "the Texas cities (~20 C). Dallas and Houston take more observations to distinguish "
+    "because their temperature distributions overlap heavily. This is Bayes' theorem "
+    "telling you: 'I need more evidence when the hypotheses are similar.'"
 )
 
 st.divider()
@@ -334,11 +419,15 @@ st.divider()
 st.subheader("Prior Sensitivity Analysis")
 
 st.markdown(
-    "You might ask: if the prior doesn't matter in the long run, why bother specifying one? "
-    "Fair question. The answer is that it matters in the *short* run. With limited data, "
-    "the prior and the likelihood arm-wrestle, and either can win. Let's compare three priors "
-    "-- a uniform one, a correct one, and a deliberately wrong one -- and watch the data "
-    "gradually overwhelm all of them."
+    "A common objection to Bayesian reasoning: 'But the prior is subjective! What if I "
+    "pick the wrong one?' This is a legitimate concern, and the answer is both reassuring "
+    "and quantifiable. Let us test it."
+)
+st.markdown(
+    "We take 5 temperature readings from a target city and run Bayesian updating with "
+    "three different priors: (1) uniform (no opinion), (2) correct (slightly favor the "
+    "true city), and (3) deliberately wrong (favor a different city). Then we watch all "
+    "three converge to the same answer."
 )
 
 target_city = st.selectbox("Target city for sensitivity analysis", active_cities, key="bt_sens_city")
@@ -395,11 +484,21 @@ fig_sens.update_yaxes(title_text=f"P({target_city})", range=[0, 1.05], row=1, co
 fig_sens.update_layout(template="plotly_white", height=400, margin=dict(t=60, b=40))
 st.plotly_chart(fig_sens, use_container_width=True)
 
+st.markdown(
+    f"**Reading the three panels:** Each panel tracks the probability of the true city "
+    f"({target_city}) over 5 observations, starting from a different prior. The left panel "
+    f"starts at ~17% (uniform), the middle at 60% (correct), the right at a low value "
+    f"(wrong prior favoring {other_city}). Despite starting in very different places, "
+    f"all three converge toward the same value by observation 5."
+)
+
 insight_box(
     "Even with a wrong prior, the posterior converges to the truth as data accumulates. "
-    "With enough evidence, the data overwhelms the prior -- this is called Bayesian consistency, "
-    "and it is one of the genuinely reassuring results in all of statistics. "
-    "You do not need to be right at the start. You just need to keep updating."
+    "This is called **Bayesian consistency**, and it is one of the genuinely reassuring "
+    "results in all of statistics. The wrong prior starts you in the wrong place, but "
+    "it does not keep you there. Five temperature readings are enough to mostly erase "
+    "a bad prior. Fifty readings would erase it completely. You do not need to be right "
+    "at the start. You just need to keep updating."
 )
 
 st.divider()
@@ -453,8 +552,16 @@ quiz(
         "The total probability of the evidence",
     ],
     correct_idx=1,
-    explanation="The likelihood asks: 'If this hypothesis were true, how surprised would I be "
-    "to see this evidence?' It is the engine that drives the update.",
+    explanation=(
+        "The likelihood asks: 'If this reading really came from Dallas, how probable is a "
+        "temperature of 35 C and humidity of 30%?' It checks the evidence against each "
+        "hypothesis. Dallas might have a likelihood of 0.003 (35 C is plausible there), "
+        "while NYC has a likelihood of 0.00004 (35 C is a record-breaking heat wave in NYC). "
+        "The likelihood is the engine that drives the Bayesian update -- it is what converts "
+        "data into evidence. A common confusion: the likelihood is NOT the probability of the "
+        "hypothesis. P(E|H) and P(H|E) are very different things, and confusing them is called "
+        "the prosecutor's fallacy."
+    ),
     key="ch54_quiz1",
 )
 
@@ -467,9 +574,41 @@ quiz(
         "You must restart with the correct prior",
     ],
     correct_idx=2,
-    explanation="With enough data, the likelihood dominates the prior. This is called Bayesian "
-    "consistency -- and it means you do not need to be right at the start, just willing to update.",
+    explanation=(
+        "With enough data, the likelihood dominates the prior. This is Bayesian consistency, "
+        "and you can see it directly in the prior sensitivity demo above. After just 5 "
+        "temperature readings, even a deliberately wrong prior (60% probability on the wrong "
+        "city) gets corrected. After 100 readings, the prior contributes effectively nothing "
+        "to the posterior -- the data speaks for itself. You do not need to be right at the "
+        "start. You just need to keep updating. This is why Bayesian methods are practical "
+        "even when the prior is somewhat arbitrary."
+    ),
     key="ch54_quiz2",
+)
+
+quiz(
+    "You observe a temperature of 22 C. Dallas (mean 20.5 C, std 10.2 C) and Houston "
+    "(mean 22.1 C, std 8.5 C) both have similar likelihoods. What does Bayes' theorem "
+    "tell you to do?",
+    [
+        "Pick the city with the higher likelihood and ignore the prior",
+        "The prior breaks the tie -- if you have reason to believe one city is more likely, that matters",
+        "The theorem gives no answer when likelihoods are similar",
+        "You need to use a different method entirely",
+    ],
+    correct_idx=1,
+    explanation=(
+        "When the likelihoods are similar, the prior matters a lot. This is exactly the "
+        "situation where Bayesian reasoning shines: it gives you a principled way to break "
+        "ties. If you know the reading came from Texas (maybe you know the sensor is in "
+        "Texas but not which city), you might have a higher prior for Dallas than Houston. "
+        "That prior tips the balance. In the sequential updating demo, this is why Dallas "
+        "and Houston take many observations to distinguish -- their temperature distributions "
+        "overlap heavily, so each individual observation provides only a little evidence. "
+        "The prior decides the initial lean, and the data slowly accumulates enough evidence "
+        "to override it."
+    ),
+    key="ch54_quiz3",
 )
 
 st.divider()
@@ -478,11 +617,22 @@ st.divider()
 # 8. Takeaways
 # ---------------------------------------------------------------------------
 takeaways([
-    "Bayes' theorem provides a principled, mechanical framework for updating beliefs with new evidence. It is not optional epistemology -- it is the only consistent way to do it.",
-    "The prior reflects initial belief, the likelihood measures data compatibility, and the posterior is the updated belief. Each piece has a job.",
-    "Sequential updating processes one observation at a time -- the result is mathematically identical to batch updating. You never need to start over.",
-    "With enough data, the posterior is dominated by the likelihood, not the prior. Wrong priors are self-correcting.",
-    "Bayesian reasoning naturally quantifies uncertainty, which is what makes it foundational to modern data science -- and, arguably, to thinking clearly about anything.",
+    "Bayes' theorem provides a mechanical, principled procedure for updating beliefs with "
+    "evidence. Given a weather reading (35 C, 30% humidity), it combines your prior belief "
+    "about which city with how typical that reading is for each city to produce an updated "
+    "probability.",
+    "The **prior** is your starting belief, the **likelihood** measures how consistent the "
+    "data is with each hypothesis, and the **posterior** is the updated belief. Each piece "
+    "has a specific job in the calculation.",
+    "**Sequential updating** processes one observation at a time: the posterior from reading "
+    "#1 becomes the prior for reading #2. The result is mathematically identical to processing "
+    "all readings at once. You never need to start over.",
+    "With enough data, the posterior is dominated by the likelihood, not the prior. **Wrong "
+    "priors are self-correcting** -- 5-10 observations are often enough to erase a bad prior. "
+    "This is Bayesian consistency.",
+    "Cities with distinctive weather (NYC: cold, humid) are identified faster than cities "
+    "with similar weather (Dallas vs Houston: both hot Texas cities). Bayes' theorem "
+    "automatically 'knows' when it needs more evidence.",
 ])
 
 navigation(

@@ -17,75 +17,117 @@ from utils.constants import CITY_LIST, CITY_COLORS, FEATURE_LABELS
 # ---------------------------------------------------------------------------
 # Page config
 # ---------------------------------------------------------------------------
-st.set_page_config(page_title="Ch 56: Probabilistic Programming", layout="wide")
 df = load_data()
 fdf = sidebar_filters(df)
 
 chapter_header(56, "Probabilistic Programming", part="XIII")
+
+st.markdown(
+    "Last two chapters gave us beautiful closed-form Bayesian updates. Prior times "
+    "likelihood, divide by evidence, done. But here is the catch: that only worked "
+    "because we used a very specific combination -- a normal prior with a normal "
+    "likelihood (the 'conjugate' case). The moment your model gets even slightly "
+    "more realistic, the math breaks."
+)
+st.markdown(
+    "**The problem**: We want to model the relationship between humidity and temperature "
+    "in Dallas. Specifically: if I tell you the humidity is 45%, what is your best "
+    "guess for the temperature, and how uncertain are you? This is Bayesian linear "
+    "regression: temp = intercept + slope * humidity + noise. We want posterior "
+    "distributions over the intercept, the slope, and the noise level."
+)
+st.markdown(
+    "For this model, there is no closed-form posterior. The integral you need to compute "
+    "does not have a nice analytical solution. So what do you do? You *approximate* it "
+    "by generating samples from the posterior using a clever random walk algorithm called "
+    "**Markov Chain Monte Carlo (MCMC)**. And the tools that automate this -- PyMC, Stan, "
+    "Pyro -- are called **probabilistic programming languages**."
+)
+st.markdown(
+    "**Why this matters**: Probabilistic programming lets you specify *any* Bayesian model "
+    "in code and get posterior distributions automatically. Want to model temperature as "
+    "a function of humidity, wind speed, and pressure simultaneously? Easy. Want a "
+    "hierarchical model where each city has its own slope but they are all drawn from a "
+    "shared group distribution? Also easy. The PPL handles the hard part (sampling from "
+    "the posterior), and you focus on the modeling part (deciding what goes in)."
+)
 
 # ---------------------------------------------------------------------------
 # 1. Theory
 # ---------------------------------------------------------------------------
 concept_box(
     "What Is Probabilistic Programming?",
-    "Remember how in the last chapter we got nice closed-form posterior updates because "
-    "we used conjugate priors? That was lovely, but it only works for a tiny fraction of "
-    "real-world models. The moment your model gets even slightly complicated -- say, a "
-    "hierarchical structure or a non-linear link function -- the math stops being tractable.<br><br>"
-    "Probabilistic programming languages (PPLs) like <b>PyMC</b>, Stan, and Pyro solve this by "
-    "letting you specify your model in code, then automatically performing <b>Bayesian inference</b> "
-    "using algorithms like MCMC (Markov Chain Monte Carlo). You describe the generative story of "
-    "your data, and the PPL figures out the posterior. It is, frankly, a little magical.<br><br>"
-    "The workflow is always the same:<br>"
-    "1. Define priors for each parameter<br>"
-    "2. Define the likelihood (how data relates to parameters)<br>"
-    "3. Let the PPL sample from the posterior automatically",
+    "In Chapters 54-55, we got nice closed-form posteriors because we used conjugate "
+    "priors. That was lovely, but it only works for a tiny fraction of real models. "
+    "The moment you want a linear regression (temp ~ humidity), a hierarchical model "
+    "(different slopes per city), or anything with a non-Gaussian likelihood, the math "
+    "stops being tractable.<br><br>"
+    "Probabilistic programming languages (PPLs) like <b>PyMC</b>, Stan, and Pyro solve "
+    "this by letting you specify your model in code, then automatically performing "
+    "Bayesian inference using MCMC algorithms. The workflow is always the same:<br>"
+    "1. Define priors for each parameter (intercept ~ N(20, 10), slope ~ N(0, 1), "
+    "sigma ~ HalfNormal(5))<br>"
+    "2. Define the likelihood (temp_observed ~ N(intercept + slope * humidity, sigma))<br>"
+    "3. Let the PPL sample from the posterior automatically<br><br>"
+    "You describe the generative story of your data (how you think the data was "
+    "produced), and the PPL works backward to figure out what parameter values are "
+    "consistent with what you actually observed. It is, frankly, a little magical.",
 )
 
 concept_box(
     "MCMC: Markov Chain Monte Carlo",
-    "Here is the core idea: if you cannot compute the posterior analytically, you can "
-    "instead generate <em>samples</em> from it by constructing a cleverly designed random walk. "
-    "Algorithms like the <b>No-U-Turn Sampler (NUTS)</b> are particularly good at this.<br><br>"
-    "The Markov chain's stationary distribution is the posterior, so if you run it long enough "
-    "and check that it has converged, your samples are as good as having the closed-form answer. "
+    "Here is the core idea. If you cannot compute the posterior analytically (and you "
+    "usually cannot), you can instead generate <em>samples</em> from it by constructing "
+    "a cleverly designed random walk through parameter space.<br><br>"
+    "Imagine you are searching for the best combination of intercept and slope for our "
+    "temp ~ humidity model. MCMC starts at some initial guess (say, intercept = 20, "
+    "slope = -0.1). It proposes a small random step (maybe intercept = 20.05, slope = "
+    "-0.098). If the new location has higher posterior probability (the data is more "
+    "consistent with these parameters), it moves there. If lower, it moves there with "
+    "some probability, or stays put. After thousands of steps, the chain has spent most "
+    "of its time in high-probability regions of parameter space -- and the histogram of "
+    "where the chain visited IS the posterior distribution.<br><br>"
     "Key diagnostics to watch for:<br>"
-    "- <b>Trace plots</b>: should look like 'hairy caterpillars' (well-mixed). If they look like "
-    "snakes trying to escape a box, something has gone wrong.<br>"
-    "- <b>R-hat</b>: should be close to 1.0. If it is not, your chains have not converged and "
-    "your results are not to be trusted.<br>"
-    "- <b>Effective sample size</b>: should be large, indicating low autocorrelation",
+    "- <b>Trace plots</b>: should look like 'hairy caterpillars' (well-mixed, bouncing "
+    "around a stable mean). If they look like a snake trying to escape a box (drifting, "
+    "not mixing), the chain has not converged.<br>"
+    "- <b>R-hat</b>: should be close to 1.0. Values above 1.05 mean your chains disagree "
+    "with each other, which means the results are not trustworthy.<br>"
+    "- <b>Effective sample size</b>: should be large (ideally > 400). Low ESS means "
+    "high autocorrelation between samples.",
 )
 
 st.markdown("""
 ### The PyMC Workflow
 
+Here is what a Bayesian linear regression for our weather data looks like in PyMC. Three blocks of code and you have posterior distributions for all parameters.
+
 ```python
 import pymc as pm
 
 with pm.Model() as model:
-    # 1. Priors
+    # 1. Priors -- what do you believe before seeing data?
     intercept = pm.Normal('intercept', mu=0, sigma=10)
     slope = pm.Normal('slope', mu=0, sigma=1)
     sigma = pm.HalfNormal('sigma', sigma=5)
 
-    # 2. Likelihood
+    # 2. Likelihood -- how does humidity relate to temperature?
     mu = intercept + slope * x_data
     y_obs = pm.Normal('y_obs', mu=mu, sigma=sigma, observed=y_data)
 
-    # 3. Inference
+    # 3. Inference -- let PyMC figure out the posterior
     trace = pm.sample(1000, cores=2)
 ```
 
-That is it. Three blocks of code and you have posterior distributions for all your parameters.
-The PPL handles the MCMC sampling, adaptation, convergence checking, and diagnostics.
+That is it. The PPL handles the MCMC sampling, adaptation, convergence checking, and diagnostics. You get posterior distributions over intercept, slope, and sigma -- not just point estimates, but full distributions that tell you exactly how uncertain you are about each parameter.
 """)
 
 warning_box(
     "PyMC requires a working installation with a compatible backend (JAX or C compiler). "
     "In this chapter, we simulate what PyMC would produce using analytical solutions and "
-    "Metropolis-Hastings sampling to demonstrate the concepts without requiring PyMC installation. "
-    "Think of it as the pedagogical equivalent of a flight simulator."
+    "a Metropolis-Hastings sampler implemented in pure NumPy. Think of it as the "
+    "pedagogical equivalent of a flight simulator -- same instruments, same principles, "
+    "just without leaving the ground."
 )
 
 st.divider()
@@ -94,6 +136,27 @@ st.divider()
 # 2. Interactive: Bayesian Linear Model (temp ~ humidity)
 # ---------------------------------------------------------------------------
 st.subheader("Interactive: Bayesian Linear Regression (Temperature ~ Humidity)")
+
+st.markdown(
+    "Here is the concrete model. We take a city's weather data and fit: "
+    "**temperature = intercept + slope * humidity + noise**. The Bayesian version gives "
+    "us not just one best-fit line, but a *distribution* of plausible lines. Each line "
+    "has a different intercept and slope, drawn from the posterior distribution."
+)
+st.markdown(
+    "**What the controls do:** 'City' selects the data. 'Data sample size' controls "
+    "how many hourly readings we use. 'MCMC samples' controls how many posterior samples "
+    "the Metropolis-Hastings algorithm generates. 'Prior std for slope' controls how "
+    "informative the prior on the slope is -- a small value (0.1) says 'I am fairly "
+    "confident the slope is near zero,' while a large value (5.0) says 'I have no idea.'"
+)
+st.markdown(
+    "**What to look for:** The scatter plot shows the humidity-temperature relationship "
+    "for your chosen city. Look for the overall trend: in most cities, higher humidity "
+    "is weakly associated with lower temperatures (the slope is slightly negative). "
+    "But the relationship is noisy -- humidity alone explains only a fraction of "
+    "temperature variation."
+)
 
 col_ctrl, col_data = st.columns([1, 2])
 
@@ -135,10 +198,16 @@ with col_data:
 st.subheader("MCMC Sampling (Metropolis-Hastings)")
 
 st.markdown(
-    "We implement a simple Metropolis-Hastings sampler to estimate the intercept, "
-    "slope, and noise of a linear model: **temp = intercept + slope * humidity + noise**. "
-    "This is the same thing PyMC does under the hood, just with a less sophisticated algorithm "
-    "and more educational transparency."
+    "Now we run the actual Bayesian inference. The Metropolis-Hastings algorithm will "
+    "explore the space of all possible (intercept, slope, sigma) combinations, spending "
+    "more time in regions that are consistent with our data and our priors. After "
+    f"{n_mcmc} samples (plus 500 burn-in), we have an approximation of the posterior "
+    "distribution."
+)
+st.markdown(
+    "**The model being fitted:** temp = intercept + slope * humidity_centered + noise, "
+    f"where humidity is centered (mean-subtracted and scaled). Using {n_sample} data "
+    f"points from {pp_city}."
 )
 
 @st.cache_data(show_spinner="Running MCMC sampler...")
@@ -201,12 +270,24 @@ sigma_samples = np.exp(samples[:, 2])
 slope_original = slope_samples / x_std_val
 intercept_original = intercept_samples - slope_samples * x_mean / x_std_val
 
-st.markdown(f"**Acceptance rate:** {acc_rate:.1%} (target: 20-50%)")
+st.markdown(
+    f"**Acceptance rate:** {acc_rate:.1%} (target: 20-50%). "
+    f"{'Good -- the chain is exploring efficiently.' if 0.2 <= acc_rate <= 0.5 else 'Outside the ideal range -- the proposal step size may need tuning.'} "
+    f"We generated {n_mcmc} posterior samples after discarding 500 burn-in samples."
+)
 
 # ---------------------------------------------------------------------------
 # 4. Trace Plots
 # ---------------------------------------------------------------------------
 st.subheader("Trace Plots and Posterior Distributions")
+
+st.markdown(
+    "Trace plots are your MCMC diagnostic dashboard. The left column shows the chain's "
+    "trajectory over time (should look like a 'hairy caterpillar' bouncing around a "
+    "stable mean). The right column shows the histogram of posterior samples (the "
+    "approximate posterior distribution). The dashed vertical lines mark the 95% "
+    "credible interval."
+)
 
 fig_trace = make_subplots(
     rows=3, cols=2,
@@ -274,15 +355,22 @@ ols_params, _, _, _ = lstsq(A_full, y_data, rcond=None)
 
 st.markdown(
     f"**OLS estimates for comparison:** intercept = {ols_params[0]:.4f}, "
-    f"slope = {ols_params[1]:.4f}"
+    f"slope = {ols_params[1]:.4f}. The Bayesian posterior means should be very close "
+    f"to these values -- with {n_sample} data points and weak priors, the data dominates "
+    f"and the Bayesian answer converges to the frequentist one."
 )
 
+slope_lo, slope_hi = np.percentile(slope_original, [2.5, 97.5])
 insight_box(
-    "The Bayesian posterior means are very close to the OLS estimates, which is exactly what "
-    "you would expect -- we used relatively uninformative priors and have enough data. The key "
-    "advantage of the Bayesian approach is not a different point estimate; it is the full "
-    "posterior distribution and credible intervals. You do not just know the slope is probably "
-    "around -0.1; you know the probability it is between -0.08 and -0.12."
+    f"The posterior mean slope is {np.mean(slope_original):.4f} -- meaning for each "
+    f"1% increase in humidity, temperature changes by about {np.mean(slope_original):.3f} C. "
+    f"The 95% credible interval for the slope is ({slope_lo:.4f}, {slope_hi:.4f}). "
+    f"{'The interval excludes zero, so we are confident humidity and temperature are genuinely related.' if (slope_lo > 0 or slope_hi < 0) else 'The interval includes zero, so we cannot confidently say humidity affects temperature.'} "
+    f"The Bayesian posterior means are very close to the OLS estimates, which is exactly "
+    f"what you expect with weak priors and enough data. The key advantage is not a "
+    f"different point estimate -- it is the full posterior distribution. You do not just "
+    f"know the slope is around {np.mean(slope_original):.3f}; you know the probability it "
+    f"is between {slope_lo:.3f} and {slope_hi:.3f}."
 )
 
 st.divider()
@@ -291,6 +379,19 @@ st.divider()
 # 5. Posterior Predictive Plot
 # ---------------------------------------------------------------------------
 st.subheader("Posterior Predictive: Regression Lines from the Posterior")
+
+st.markdown(
+    "This is where the Bayesian approach really shines visually. Instead of drawing "
+    "one best-fit line, we draw 100 lines -- each one a plausible regression line "
+    "sampled from the posterior distribution. The spread of these lines IS your "
+    "uncertainty about the humidity-temperature relationship."
+)
+st.markdown(
+    "**What to look for:** Where the fan of red lines is narrow, the model is confident "
+    "about the relationship. Where the fan is wide, the model is uncertain. The fan is "
+    "typically narrowest near the center of the data (where we have the most observations) "
+    "and widest at the extremes."
+)
 
 x_pred = np.linspace(x_data.min(), x_data.max(), 100)
 
@@ -330,11 +431,14 @@ apply_common_layout(fig_pred, title="Posterior Predictive Regression Lines", hei
 st.plotly_chart(fig_pred, use_container_width=True)
 
 insight_box(
-    "Each faint red line represents one plausible regression line drawn from the posterior. "
-    "The spread of these lines is your uncertainty made visible. Where the fan is narrow, "
-    "you are confident. Where it is wide, you are not. "
-    "This is a key advantage of Bayesian regression: you get a distribution of predictions, "
-    "not just a single best-fit line pretending to be certain."
+    "Each faint red line is one plausible regression line drawn from the posterior. "
+    "The spread of these lines IS your uncertainty made visible. A frequentist analysis "
+    "gives you one line and a confidence band; the Bayesian analysis gives you a "
+    "distribution of lines, which is a more honest representation of what we know. "
+    f"For {pp_city}, the lines are relatively tight around the mean (dark line), "
+    f"indicating we are fairly confident about the humidity-temperature relationship. "
+    f"The slope is {mean_slope:.4f} C per % humidity -- a weak but real signal buried "
+    f"in a lot of noise (sigma = {np.mean(sigma_samples):.2f} C)."
 )
 
 st.divider()
@@ -344,32 +448,60 @@ st.divider()
 # ---------------------------------------------------------------------------
 st.subheader("Hierarchical Models: Partial Pooling Across Cities")
 
+st.markdown(
+    "Now let me show you the killer app of probabilistic programming: hierarchical models. "
+    "We have temperature data from 6 cities. We want to estimate each city's mean "
+    "temperature. There are three approaches:"
+)
+st.markdown(
+    "**Complete pooling** ('all cities are the same'): Ignore city differences entirely, "
+    "compute one global mean. This throws away real information -- NYC is obviously "
+    "colder than Dallas.\n\n"
+    "**No pooling** ('all cities are independent'): Compute each city's mean separately, "
+    "as if the other cities do not exist. This ignores the fact that all 6 cities share "
+    "the same planet and similar physics.\n\n"
+    "**Partial pooling** ('cities are different, but related'): Each city has its own mean, "
+    "but all 6 means are drawn from a shared group-level distribution. Cities with fewer "
+    "observations get 'shrunk' toward the group mean -- they borrow strength from the "
+    "other cities. This is the hierarchical model, and it is usually the best option."
+)
+
 concept_box(
     "Hierarchical (Multilevel) Models",
-    "When we have data from multiple cities, we face an interesting modelling dilemma with "
-    "three options, two of which are clearly wrong:<br><br>"
-    "<b>Complete pooling</b>: ignore city differences entirely, fit one model to all data. "
-    "This throws away real information.<br>"
-    "<b>No pooling</b>: fit a separate model for each city independently. This ignores the "
-    "fact that cities share the same planet and similar physics.<br>"
-    "<b>Partial pooling (hierarchical)</b>: each city has its own parameters, but they "
-    "are drawn from a shared group-level distribution. Cities with less data get "
-    "'shrunk' toward the group mean -- borrowing strength from other cities.<br><br>"
-    "Partial pooling is the Goldilocks option, and it is one of the most practically useful "
-    "ideas in all of Bayesian statistics.",
+    "The hierarchical model says: each city's mean temperature mu_i is drawn from a "
+    "shared group distribution N(mu_global, tau). Then each observation within that "
+    "city is drawn from N(mu_i, sigma).<br><br>"
+    "Concretely: there is some 'average city temperature' mu_global (maybe 20 C). "
+    "Each city deviates from this: Dallas might be mu_global + 0.5, NYC might be "
+    "mu_global - 7. The spread of these deviations is controlled by tau. And within "
+    "each city, individual hourly readings vary with standard deviation sigma.<br><br>"
+    "The magic of partial pooling: if a city has very few data points (say, we only "
+    "have 10 readings for a new city), its estimate gets pulled strongly toward the "
+    "group mean -- because with limited data, the model 'hedges' by borrowing information "
+    "from the other 5 cities. A city with thousands of readings barely gets pulled at all. "
+    "This automatic borrowing of strength is one of the most practically useful ideas in "
+    "all of statistics.",
 )
 
 formula_box(
     "Hierarchical Model for City Temperatures",
     r"\mu_i \sim \mathcal{N}(\mu_{\text{global}}, \tau^2), \quad "
     r"y_{ij} \sim \mathcal{N}(\mu_i, \sigma^2)",
-    "mu_i is the mean temperature for city i; mu_global and tau describe "
-    "the group-level distribution; sigma is the within-city noise. The key insight "
-    "is that each city's mu_i is regularized toward the global mean.",
+    "mu_i is the mean temperature for city i; mu_global and tau describe the group-level "
+    "distribution of city means; sigma is the within-city noise. The key insight: each "
+    "city's mu_i is regularized toward mu_global, with the amount of regularization "
+    "depending on how much data that city has.",
 )
 
 # Demonstrate shrinkage
 st.markdown("#### Shrinkage Effect: Partial Pooling vs No Pooling")
+
+st.markdown(
+    "In the chart below, circles show each city's sample mean (no pooling), and diamonds "
+    "show the partially-pooled estimate. Arrows show the direction and magnitude of "
+    "shrinkage. Cities far from the grand mean get pulled inward; cities with less data "
+    "get pulled more."
+)
 
 city_means = {}
 city_ns = {}
@@ -447,12 +579,24 @@ if len(city_means) >= 2:
     })
     st.dataframe(shrink_df, use_container_width=True, hide_index=True)
 
+    st.markdown(
+        "**Reading the table:** The 'Shrinkage Amount' column shows how much each city's "
+        "estimate was pulled toward the grand mean. With ~17,500 observations per city "
+        "(our dataset has 105,264 rows across 6 cities), the shrinkage is tiny -- a "
+        "fraction of a degree. But in a scenario with uneven data (say, 10,000 readings "
+        "for Dallas but only 50 for a new city), the new city's estimate would be shrunk "
+        "substantially toward the group mean, which is almost always the right thing to do."
+    )
+
     insight_box(
-        "Partial pooling 'shrinks' each city's estimate toward the grand mean. "
-        "Cities with fewer observations are shrunk more -- they borrow more strength "
-        "from the group. This is not a bug; it is a feature. It is the model saying: "
-        "'I do not have much data for this city, so I will hedge toward what the other cities suggest.' "
-        "This reduces overfitting and typically improves out-of-sample predictions."
+        "Partial pooling 'shrinks' each city's estimate toward the grand mean "
+        f"({grand_mean:.1f} C). Cities with fewer observations are shrunk more -- they "
+        "borrow more strength from the group. This is not a bug; it is the model saying: "
+        "'I do not have much data for this city, so I will hedge toward what the other "
+        "cities suggest.' With our dataset (roughly equal data per city), the shrinkage "
+        "is small. But in real-world scenarios with unbalanced data, partial pooling "
+        "consistently produces better out-of-sample predictions than either complete "
+        "pooling or no pooling. It is the Goldilocks solution."
     )
 
 st.divider()
@@ -521,10 +665,16 @@ quiz(
         "Markov Chain Monte Carlo -- produces point estimates only",
     ],
     correct_idx=1,
-    explanation="MCMC generates samples from the posterior distribution by constructing "
-                "a Markov chain whose stationary distribution is the target posterior. "
-                "The samples let you approximate any property of the posterior you want -- "
-                "means, medians, credible intervals, the works.",
+    explanation=(
+        "MCMC generates samples from the posterior distribution by constructing a random "
+        "walk (Markov chain) whose stationary distribution is the target posterior. In our "
+        "weather example, each sample is a triplet (intercept, slope, sigma) -- one plausible "
+        "set of parameter values. After 2,000 samples, the histogram of intercept values IS "
+        "the posterior distribution of the intercept. You can compute any summary from these "
+        "samples: posterior means, medians, credible intervals, probability that the slope is "
+        "negative, etc. The key point: MCMC gives you the FULL posterior, not just a point "
+        "estimate. That full distribution is what makes Bayesian inference powerful."
+    ),
     key="ch56_quiz1",
 )
 
@@ -537,10 +687,42 @@ quiz(
         "Only half the data is used for estimation",
     ],
     correct_idx=2,
-    explanation="Partial pooling means city-level parameters are linked through a group-level "
-                "distribution. Cities with less data are shrunk more toward the group mean. "
-                "It is a principled way to balance individual estimation with information sharing.",
+    explanation=(
+        "Partial pooling means each city gets its own parameter (its own mean temperature), "
+        "but all those parameters are linked through a shared group-level distribution. "
+        "Dallas has its own mu_Dallas, NYC has its own mu_NYC, but both are drawn from "
+        "N(mu_global, tau). This creates shrinkage: cities with less data are pulled more "
+        "strongly toward the group mean. If we only have 50 readings for a new city, we "
+        "do not trust them fully -- instead, we compromise between what those 50 readings "
+        "say and what the other 5 cities suggest. This is a principled way to borrow strength "
+        "across groups, and it almost always outperforms both 'ignore city differences' "
+        "(complete pooling) and 'treat cities as independent' (no pooling)."
+    ),
     key="ch56_quiz2",
+)
+
+quiz(
+    "You run MCMC for a Bayesian regression and the trace plot shows the chain drifting "
+    "steadily upward over 2,000 samples. What does this indicate?",
+    [
+        "The model is learning and improving over time",
+        "The chain has not converged -- the posterior samples are not reliable",
+        "The data is trending upward",
+        "The prior is too strong",
+    ],
+    correct_idx=1,
+    explanation=(
+        "A drifting trace plot means the chain has NOT reached its stationary distribution "
+        "-- it is still 'exploring' and has not settled into the high-probability region of "
+        "parameter space. This is a convergence failure. The samples from a non-converged "
+        "chain are NOT valid posterior samples. The fixes: (1) increase the burn-in period "
+        "(discard more initial samples), (2) increase the total number of samples, (3) "
+        "reparameterize the model to improve mixing, (4) check that the model is identified "
+        "(the posterior actually has a peak). In PyMC, you would check R-hat > 1.05 or "
+        "low effective sample size as diagnostic flags. Never trust MCMC results without "
+        "checking convergence."
+    ),
+    key="ch56_quiz3",
 )
 
 st.divider()
@@ -549,11 +731,24 @@ st.divider()
 # 9. Takeaways
 # ---------------------------------------------------------------------------
 takeaways([
-    "Probabilistic programming languages automate Bayesian inference via MCMC, saving you from having to derive posteriors by hand (which is good, because most posteriors do not have closed forms).",
-    "MCMC produces samples from the posterior -- check convergence with trace plots and R-hat before trusting anything.",
-    "Bayesian regression gives posterior distributions over parameters, not just point estimates. The uncertainty is a feature, not a limitation.",
-    "Posterior predictive checks show the range of plausible model predictions, making uncertainty visible and actionable.",
-    "Hierarchical models enable partial pooling, borrowing strength across groups -- one of the most practically useful ideas in modern statistics.",
+    "**Probabilistic programming** automates Bayesian inference via MCMC for models "
+    "where closed-form posteriors do not exist. You specify the model (temp = intercept "
+    "+ slope * humidity + noise), and the PPL figures out the posterior.",
+    "**MCMC** produces samples from the posterior -- each sample is one plausible set of "
+    "parameter values. Check convergence with trace plots (should look like hairy "
+    "caterpillars) and R-hat (should be < 1.05) before trusting anything.",
+    "Bayesian regression gives you a **distribution of regression lines**, not just one "
+    "best-fit line. The spread of those lines IS your uncertainty about the humidity-"
+    "temperature relationship. Where the fan is narrow, you are confident; where it is "
+    "wide, you are not.",
+    "**Hierarchical models** enable partial pooling across cities: each city gets its "
+    "own parameters, but cities with less data borrow strength from the group. This "
+    "produces better out-of-sample predictions than treating cities independently or "
+    "lumping them all together.",
+    "With enough data and weak priors, Bayesian and frequentist estimates converge to "
+    "the same answer. The Bayesian advantage is honest uncertainty quantification -- "
+    "you get full posterior distributions, credible intervals, and the ability to answer "
+    "questions like 'what is the probability that the slope is negative?'",
 ])
 
 navigation(

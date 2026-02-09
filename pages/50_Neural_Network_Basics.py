@@ -23,13 +23,24 @@ from utils.ui_components import (
 # ── Header ───────────────────────────────────────────────────────────────────
 chapter_header(50, "Neural Network Basics", part="XII")
 st.markdown(
-    "There is a running joke in machine learning that neural networks are "
-    "\"just matrix multiplications.\" This is true in roughly the same way that "
-    "the Mona Lisa is \"just pigment on wood.\" Technically correct, but it "
-    "leaves out the interesting part. This chapter starts from the simplest "
-    "building block -- a **single neuron** -- and works up to **activation "
-    "functions** and **gradient descent**, the algorithm that makes the whole "
-    "enterprise possible."
+    "We have spent the last several chapters building increasingly powerful ensembles "
+    "of decision trees. Now we take a sharp turn into a completely different family of "
+    "models: **neural networks**. And I want to start by demystifying them, because the "
+    "name alone -- 'neural network' -- conjures images of brain-like complexity that is "
+    "mostly undeserved at this level."
+)
+st.markdown(
+    "**The task**: We are still working with our weather data. Given a humidity reading, "
+    "can we predict the temperature? One number in, one number out. The simplest possible "
+    "prediction task. I am going to show you that a single 'neuron' is literally just "
+    "linear regression -- the same thing you already know -- and then explain what you "
+    "need to add to make it more powerful."
+)
+st.markdown(
+    "By the end of this chapter, you will understand three things: (1) what a neuron "
+    "actually computes, (2) why non-linear activation functions are the key ingredient, "
+    "and (3) how gradient descent trains the whole thing. And we will test whether a "
+    "simple neural network actually beats linear regression on our weather data."
 )
 
 # ── Load data ────────────────────────────────────────────────────────────────
@@ -37,27 +48,50 @@ df = load_data()
 fdf = sidebar_filters(df)
 
 # ── 50.1 The Single Neuron ──────────────────────────────────────────────────
-st.header("50.1  A Single Neuron = Linear Regression")
+st.header("50.1  A Single Neuron = Linear Regression (Seriously)")
+
+st.markdown(
+    "Let me strip away all the mystique. A single artificial neuron does this:"
+)
+st.markdown(
+    "1. Takes inputs (e.g., humidity = 72%)\n"
+    "2. Multiplies each input by a weight (e.g., weight = -0.15)\n"
+    "3. Adds a bias term (e.g., bias = 35.2)\n"
+    "4. Passes the result through an activation function\n\n"
+    "With a **linear activation** (which just means 'do nothing'), step 4 is a no-op. "
+    "So the output is: -0.15 * 72 + 35.2 = 24.4 degrees C. That is linear regression. "
+    "One weight, one bias, one multiply-and-add. The same thing you learned in a "
+    "statistics class, just rebranded."
+)
 
 concept_box(
-    "The Artificial Neuron",
-    "A single neuron is just a linear regression wearing a trench coat. "
-    "It multiplies each input by a weight, adds them up, tosses in a bias term, "
-    "and passes the result through an activation function:<br><br>"
-    "<code>output = activation(w1*x1 + w2*x2 + ... + b)</code><br><br>"
-    "Strip away the mystique and that is all there is. With a linear (identity) "
-    "activation, this is <b>exactly</b> linear regression. The same thing you "
-    "learned in stats class, just rebranded with fancier vocabulary."
+    "The Artificial Neuron in Weather Terms",
+    "Our neuron is predicting temperature from humidity. The weight tells it the "
+    "relationship: 'for each 1% increase in humidity, temperature changes by w degrees.' "
+    "A negative weight (-0.15) means 'higher humidity tends to go with lower temperature' "
+    "(which makes sense -- cloudy, humid days are often cooler than dry, sunny ones). "
+    "The bias is the baseline: 'if humidity were 0%, the predicted temperature would be "
+    "35.2 C.'<br><br>"
+    "With a linear activation, this is <b>exactly</b> the equation y = wx + b. "
+    "A single neuron with a linear activation IS linear regression. Same math, "
+    "different vocabulary."
 )
 
 formula_box(
     "Single Neuron",
     r"y = \sigma\!\left(\sum_{i=1}^{n} w_i x_i + b\right) = \sigma(\mathbf{w}^T\mathbf{x} + b)",
     "sigma = activation function, w = weights, b = bias, x = inputs. "
-    "If sigma is the identity function, congratulations, you have reinvented linear regression."
+    "If sigma is the identity function (linear activation), this collapses to "
+    "y = w*x + b, which is linear regression."
 )
 
 st.subheader("Interactive: Single Neuron on Temperature vs Humidity")
+
+st.markdown(
+    "Select a city below. We will fit both a linear regression and a single neuron "
+    "(with linear activation) to that city's humidity-vs-temperature data. "
+    "Spoiler: they produce the same line."
+)
 
 city_neuron = st.selectbox("City", CITY_LIST, key="neuron_city")
 city_data = fdf[fdf["city"] == city_neuron].dropna(subset=["temperature_c", "relative_humidity_pct"])
@@ -90,6 +124,10 @@ with col1:
     st.metric("Linear Regression R-squared", f"{r2_score(y_neuron, lr_pred):.4f}")
     st.markdown(f"**Weight (w):** {lr.coef_[0]:.4f}")
     st.markdown(f"**Bias (b):** {lr.intercept_:.4f}")
+    st.markdown(
+        f"This means: for each 1% increase in humidity in {city_neuron}, "
+        f"the predicted temperature changes by {lr.coef_[0]:.2f} degrees C."
+    )
 with col2:
     st.metric("Single Neuron R-squared", f"{r2_score(y_neuron, mlp_pred):.4f}")
 
@@ -115,28 +153,54 @@ fig_neuron.update_layout(xaxis_title="Relative Humidity (%)", yaxis_title="Tempe
 st.plotly_chart(fig_neuron, use_container_width=True)
 
 insight_box(
-    "Look at those two lines. They are the same line. A single neuron with a "
-    "linear activation produces an **identical** fit to ordinary linear regression. "
-    "You might ask: if they are the same thing, why bother with the neuron framing? "
-    "Because the magic happens when you start **stacking** these neurons in layers "
-    "and swap in **non-linear activations**. That is when things get interesting."
+    f"The red solid line (linear regression) and the dark dashed line (single neuron) "
+    f"are the same line. They produce identical predictions. For {city_neuron}, the "
+    f"relationship between humidity and temperature is captured by one weight and one "
+    f"bias. But wait -- you might ask -- if they are the same thing, why do neural "
+    f"networks exist? Because the magic happens when you start <b>stacking</b> "
+    f"neurons in layers and swap in <b>non-linear activations</b>. That is when a "
+    f"neural network can learn curves, kinks, and complex patterns that a single "
+    f"straight line cannot. That is the topic of the next two sections."
 )
 
 # ── 50.2 Activation Functions ────────────────────────────────────────────────
 st.header("50.2  Activation Function Visualizer")
 
+st.markdown(
+    "So a single neuron with a linear activation is just linear regression. Why not "
+    "stack 10 linear neurons? Would that be more powerful?"
+)
+st.markdown(
+    "No. And this is the key insight. A linear function of a linear function is still "
+    "linear. If Layer 1 computes y = 3x + 2, and Layer 2 computes z = 5y - 1, then "
+    "z = 5(3x + 2) - 1 = 15x + 9. You have stacked two layers but the result is still "
+    "a single straight line. You could stack a hundred linear layers and the result "
+    "would collapse into one linear equation. All that complexity, and you have "
+    "accomplished exactly nothing."
+)
+
 concept_box(
-    "Why Activation Functions?",
-    "Here is a fact that sounds obvious once you hear it but has profound "
-    "consequences: a linear function of linear functions is still linear. "
-    "Stack a hundred linear layers and you have accomplished exactly nothing "
-    "that a single layer could not do. <b>Non-linear activations</b> are the "
-    "ingredient that breaks this degeneracy. They are what allow deep networks "
-    "to learn curved, kinked, and generally interesting decision boundaries "
-    "instead of just hyperplanes."
+    "Why Non-Linear Activations Are Everything",
+    "Non-linear activations break the 'stacking linear layers is useless' problem. "
+    "They introduce curves and kinks between layers, so the composition of many layers "
+    "can represent arbitrarily complex functions.<br><br>"
+    f"For our weather data, the relationship between humidity and temperature is not "
+    f"perfectly linear. In {city_neuron}, at low humidity (< 30%), temperatures might be "
+    f"quite high (clear, sunny days). At moderate humidity (40-70%), there is a wide "
+    f"spread. At very high humidity (> 90%), temperatures cluster in a narrow range "
+    f"(fog, rain). A straight line cannot capture these different regimes. But a neural "
+    f"network with non-linear activations can learn separate behaviors for each humidity "
+    f"range -- essentially learning a different slope for each region of the input space."
 )
 
 st.subheader("Interactive: Compare Activation Functions")
+st.markdown(
+    "Below you can visualize different activation functions and their derivatives. "
+    "Each activation transforms the neuron's output in a different way. The derivative "
+    "matters because gradient descent uses it to determine how to update the weights "
+    "(more on that in Section 50.3)."
+)
+
 activations_to_show = st.multiselect(
     "Select activations to visualize",
     ["Sigmoid", "Tanh", "ReLU", "Leaky ReLU", "ELU", "Swish"],
@@ -198,6 +262,19 @@ fig_act.add_vline(x=0, line_dash="dot", line_color="gray", row=1, col=2)
 apply_common_layout(fig_act, title="Activation Functions and Their Derivatives", height=400)
 st.plotly_chart(fig_act, use_container_width=True)
 
+st.markdown(
+    "**What to look for in the plots:**\n\n"
+    "- **ReLU** (dark blue): Dead simple -- output equals input when positive, zero when "
+    "negative. The derivative is either 0 or 1. This is the default choice for hidden "
+    "layers in modern networks because it is fast and avoids the 'vanishing gradient' "
+    "problem.\n\n"
+    "- **Sigmoid** (red): Squishes everything to the range (0, 1). The derivative gets "
+    "tiny for large positive or negative inputs (the 'vanishing gradient' problem), which "
+    "makes learning slow for neurons with extreme outputs.\n\n"
+    "- **Tanh** (green): Like sigmoid but outputs range from -1 to 1. Same vanishing "
+    "gradient issue at the extremes."
+)
+
 # Properties table
 props = pd.DataFrame({
     "Activation": ["Sigmoid", "Tanh", "ReLU", "Leaky ReLU"],
@@ -211,25 +288,46 @@ st.dataframe(props, use_container_width=True, hide_index=True)
 # ── 50.3 Gradient Descent ───────────────────────────────────────────────────
 st.header("50.3  Gradient Descent Visualizer")
 
+st.markdown(
+    "We have a neuron with weights and biases. We have an activation function. But "
+    "how do we *find* the right weights? How does the network learn that the weight "
+    "connecting humidity to temperature should be -0.15 and not +0.30 or -0.02?"
+)
+
 concept_box(
-    "Gradient Descent",
-    "Imagine you are blindfolded on a hilly landscape and your goal is to reach "
-    "the lowest valley. You cannot see, but you can feel which direction is "
-    "downhill. So you take a step downhill, feel again, step again. That is "
-    "gradient descent. The network computes which direction in weight-space "
-    "reduces the loss, then takes a step in that direction. The <b>learning "
-    "rate</b> controls how big each step is -- and as we are about to see, "
-    "getting this wrong is spectacularly entertaining."
+    "Gradient Descent: Finding the Right Weights",
+    "Imagine you are standing on a hilly landscape in the dark. Your altitude is the "
+    "'loss' -- how wrong the model's predictions are. Your goal is to reach the lowest "
+    "valley (minimum loss = best predictions). You cannot see the landscape, but you "
+    "can feel which direction is downhill under your feet.<br><br>"
+    "So you take a step downhill. Feel the slope again. Take another step. Repeat. "
+    "That is gradient descent. The network computes the gradient (slope) of the loss "
+    "with respect to each weight: 'if I increase this weight by a tiny amount, does "
+    "the prediction error go up or down?' Then it adjusts each weight in the direction "
+    "that reduces the error.<br><br>"
+    "For our weather model: if increasing the humidity weight makes temperature "
+    "predictions worse, the gradient tells the network to decrease that weight. If "
+    "increasing the bias makes predictions better, increase the bias. Each step nudges "
+    "all the weights toward values that produce better predictions."
 )
 
 formula_box(
     "Weight Update Rule",
     r"w_{t+1} = w_t - \eta \cdot \frac{\partial \mathcal{L}}{\partial w_t}",
-    "eta = learning rate (step size), L = loss function. "
-    "This is the entire algorithm. Everything else is details."
+    "eta = learning rate (step size), L = loss function (e.g., mean squared error of "
+    "temperature predictions), dL/dw = the gradient telling you which direction is "
+    "downhill. This single equation is the entire training algorithm. Everything else "
+    "-- backpropagation, Adam optimizer, batch normalization -- is an optimization "
+    "of this core idea."
 )
 
 st.subheader("Interactive: Learning Rate and Gradient Descent Convergence")
+
+st.markdown(
+    "Below is a simple loss landscape: a parabola with its minimum at w = 3.0. "
+    "Gradient descent starts at w = 10.0 (far from the optimum) and tries to walk "
+    "downhill. The **learning rate** controls how big each step is."
+)
 
 lr_gd = st.select_slider(
     "Learning Rate",
@@ -238,6 +336,12 @@ lr_gd = st.select_slider(
     key="gd_lr",
 )
 n_steps = st.slider("Number of steps", 10, 200, 50, key="gd_steps")
+
+st.markdown(
+    f"**Learning rate = {lr_gd}**: Each step moves the weight by {lr_gd} times the "
+    f"gradient. Try different values and watch what happens -- too small and it barely "
+    f"moves; too large and it overshoots the valley and bounces around."
+)
 
 # Simple 1D quadratic: f(w) = (w - 3)^2 + 1
 # Gradient: f'(w) = 2(w - 3)
@@ -310,21 +414,31 @@ c3.metric("Final Weight", f"{trajectory[-1]:.3f} (optimal: 3.0)")
 if lr_gd >= 1.0 and losses[-1] > losses[0]:
     warning_box(
         "The learning rate is too high and gradient descent is **diverging** -- "
-        "bouncing back and forth like a ball rolling so fast it overshoots the "
-        "valley and ends up higher than where it started. This is the most "
-        "common failure mode in neural network training."
+        "the weight is bouncing back and forth across the valley, overshooting "
+        "every time, like a ball that rolls so fast it flies past the bottom and "
+        "ends up higher than where it started. In a real neural network training "
+        "on weather data, this would mean the predicted temperatures get worse "
+        "with every training step instead of better. The fix: lower the learning rate."
     )
 elif lr_gd <= 0.005:
     st.info(
-        "With this tiny learning rate, you are essentially tiptoeing toward the "
-        "optimum. Admirable caution, but you might die of old age before converging. "
-        "You may need more steps to reach the minimum."
+        f"With learning rate = {lr_gd}, each step is tiny. After {n_steps} steps, "
+        f"the weight has only moved from 10.0 to {trajectory[-1]:.3f} -- still far "
+        f"from the optimal 3.0. You would need hundreds more steps to converge. In "
+        f"a real neural network, this means training takes a very long time. The model "
+        f"would eventually learn the right humidity-temperature relationship, but you "
+        f"might run out of patience first."
     )
 elif abs(trajectory[-1] - 3.0) < 0.1:
-    st.success(f"Converged to w = {trajectory[-1]:.3f} (near optimal w = 3.0)")
+    st.success(f"Converged to w = {trajectory[-1]:.3f} (near optimal w = 3.0). The learning rate is well-chosen for this landscape.")
 
 # Compare learning rates
 st.subheader("Convergence at Different Learning Rates")
+st.markdown(
+    "Here are all the learning rates side by side. This is the single most important "
+    "plot for building intuition about neural network training."
+)
+
 lr_values = [0.001, 0.01, 0.1, 0.5, 1.0]
 lr_colors = ["#7209B7", "#FB8500", "#2A9D8F", "#264653", "#E63946"]
 
@@ -346,21 +460,30 @@ fig_lr_comp.update_layout(xaxis_title="Step", yaxis_title="Loss",
 st.plotly_chart(fig_lr_comp, use_container_width=True)
 
 insight_box(
-    "The learning rate is arguably the single most important hyperparameter in "
-    "all of deep learning. Too small and training takes geological time. Too "
-    "large and training diverges into numerical chaos. This is why modern "
-    "optimizers like Adam and RMSProp exist -- they adaptively tune the learning "
-    "rate so you do not have to babysit it yourself. They are not magic, but "
-    "they are close enough for government work."
+    "LR=0.001 (purple) barely moves -- after 100 steps it is still far from the "
+    "minimum. LR=0.1 (green) converges smoothly in about 30 steps. LR=0.5 (dark blue) "
+    "oscillates but eventually settles. LR=1.0 (red) bounces wildly and may diverge "
+    "entirely. In real weather model training, LR=0.01 is a common starting point for "
+    "neural networks -- conservative enough to converge, fast enough to finish in a "
+    "reasonable time. Modern optimizers like Adam adaptively tune the learning rate, "
+    "which is why you rarely have to hand-tune it anymore."
 )
 
 # ── 50.4 A Simple Neural Network on Weather Data ────────────────────────────
 st.header("50.4  Putting It Together: Simple NN on Weather Data")
 
 st.markdown(
-    "Alright, enough theory. Let us train an actual neural network on actual "
-    "weather data and see whether all this machinery buys us anything over "
-    "plain linear regression. Spoiler: it does, but the margin might surprise you."
+    "Enough theory. Let us train actual neural networks on our weather data and "
+    "answer the question: does all this machinery actually buy us anything over "
+    "plain linear regression for predicting temperature?"
+)
+st.markdown(
+    "**The setup**: Predict temperature from 5 features -- humidity, wind speed, "
+    "surface pressure, hour of day, and month. Linear regression can only learn "
+    "relationships like 'each 1% humidity increase lowers temperature by 0.15 C.' "
+    "A neural network can learn non-linear relationships like 'high humidity lowers "
+    "temperature during the day but has less effect at night' or 'the pressure-"
+    "temperature relationship is different in summer vs winter.'"
 )
 
 features_nn = ["relative_humidity_pct", "wind_speed_kmh", "surface_pressure_hpa", "hour", "month"]
@@ -412,6 +535,32 @@ fig_nn = px.bar(nn_comp, x="Model", y="RMSE (C)", color="Model",
 apply_common_layout(fig_nn, height=400)
 st.plotly_chart(fig_nn, use_container_width=True)
 
+st.markdown(
+    f"Linear regression achieves RMSE = {lr_rmse:.2f} C. The single-layer neural "
+    f"network with 10 neurons achieves RMSE = {nn1_rmse:.2f} C. The two-layer network "
+    f"with 32+16 neurons achieves RMSE = {nn2_rmse:.2f} C."
+)
+
+if nn2_rmse < lr_rmse:
+    st.markdown(
+        f"The neural network improves by about {lr_rmse - nn2_rmse:.2f} degrees. "
+        f"That is because the relationship between our features and temperature is not "
+        f"purely linear. For example, humidity's effect on temperature depends on the "
+        f"time of day (hour), and the neural network can capture that interaction. "
+        f"Linear regression cannot -- it assumes each feature has a fixed, independent "
+        f"effect. But notice the improvement is modest. On tabular weather data with "
+        f"only 5 features, you do not need a massive network. The non-linear patterns "
+        f"are there, but they are subtle."
+    )
+else:
+    st.markdown(
+        "Interestingly, the neural network does not clearly beat linear regression here. "
+        "This can happen on tabular data when the relationships are mostly linear and "
+        "the dataset is not large enough for the network to learn the subtle non-linear "
+        "patterns. Tree-based models (random forest, gradient boosting) often do better "
+        "than neural networks on this kind of structured tabular data."
+    )
+
 code_example("""from sklearn.neural_network import MLPRegressor
 
 # Simple neural network
@@ -429,51 +578,77 @@ predictions = nn.predict(X_test_scaled)
 # ── Quiz ─────────────────────────────────────────────────────────────────────
 st.divider()
 quiz(
-    "A single neuron with a linear activation function is equivalent to:",
+    "A single neuron with a linear activation function predicting temperature from humidity is equivalent to:",
     [
-        "A decision tree",
-        "Linear regression",
-        "K-nearest neighbors",
-        "Random forest",
+        "A decision tree with one split",
+        "Linear regression (y = w * humidity + b)",
+        "K-nearest neighbors with k=1",
+        "A random forest with one tree",
     ],
     correct_idx=1,
     explanation=(
-        "A single neuron computes w*x + b and applies an activation. With a "
-        "linear (identity) activation, this is literally y = w*x + b. "
-        "You have traveled a long road to arrive exactly where you started. "
-        "The power comes from stacking neurons and adding non-linearity."
+        "A single neuron computes output = activation(w * humidity + b). With a linear "
+        "activation (which does nothing), this is just output = w * humidity + b -- "
+        "literally the equation for linear regression. The neuron learns a weight (slope) "
+        "and bias (intercept), exactly like fitting a line to the humidity-temperature "
+        "scatter plot. The power of neural networks comes from stacking many neurons with "
+        "non-linear activations, not from a single neuron."
     ),
     key="ch50_quiz1",
 )
 
 quiz(
-    "Why are non-linear activation functions necessary?",
+    "Why are non-linear activation functions necessary in neural networks?",
     [
-        "They make the network faster to train",
-        "They reduce the number of parameters",
-        "Without them, stacking layers is equivalent to a single linear transformation",
-        "They prevent overfitting",
+        "They make the network faster to train by simplifying the gradient computation",
+        "They reduce the number of parameters the network needs",
+        "Without them, stacking layers is equivalent to a single linear transformation -- depth is useless",
+        "They prevent overfitting by constraining the output range",
     ],
     correct_idx=2,
     explanation=(
-        "This is the key insight: a linear function of a linear function is "
-        "still linear. You could stack a thousand linear layers and the result "
-        "would collapse into a single matrix multiplication. Non-linear "
-        "activations are the entire reason deep networks can learn anything "
-        "that shallow ones cannot."
+        "This is the most important insight about neural networks: a linear function of "
+        "a linear function is still linear. Layer 1: y = 3*humidity + 2. Layer 2: "
+        "z = 5*y - 1 = 15*humidity + 9. You stacked two layers but the result is still "
+        "a straight line. You could stack a thousand linear layers and it would all "
+        "collapse into a single linear equation. Non-linear activations (ReLU, sigmoid, "
+        "tanh) break this degeneracy. They introduce curves and kinks that allow the "
+        "network to learn that humidity affects temperature differently at different "
+        "times of day or in different humidity ranges."
     ),
     key="ch50_quiz2",
+)
+
+quiz(
+    "You set the learning rate to 2.0 and the loss increases with every training step. What is happening?",
+    [
+        "The model needs more layers to learn the weather patterns",
+        "The gradient computation is incorrect",
+        "The learning rate is too large -- gradient descent is overshooting the minimum and diverging",
+        "The data needs to be normalized before training",
+    ],
+    correct_idx=2,
+    explanation=(
+        "A learning rate of 2.0 is like taking enormous leaps downhill in the dark. "
+        "Each step overshoots the valley floor and lands on the opposite hillside, even "
+        "higher than before. The next step overshoots again, even further. The loss "
+        "increases with every step because the weight updates are too large -- the model "
+        "is bouncing further and further from the optimal weights for predicting temperature. "
+        "The fix: lower the learning rate to 0.01 or 0.001. On our weather data, a "
+        "learning rate of 0.01 with 500 iterations typically converges nicely."
+    ),
+    key="ch50_quiz3",
 )
 
 # ── Takeaways ────────────────────────────────────────────────────────────────
 st.divider()
 takeaways([
-    "A **single neuron** is weighted sum + bias + activation. That is the whole thing.",
-    "With a linear activation, a neuron is **exactly** linear regression -- same math, different branding.",
-    "**Non-linear activations** (ReLU, sigmoid, tanh) are the secret ingredient that makes depth useful.",
-    "**Gradient descent** is just \"feel which way is downhill, take a step, repeat.\"",
-    "The **learning rate** is the most consequential hyperparameter: too small = glacial, too large = chaos.",
-    "Even a simple MLP can beat linear regression by capturing non-linear relationships -- but do not expect miracles on tabular data.",
+    "A **single neuron** with a linear activation is exactly linear regression: it learns one weight per feature (e.g., 'each 1% humidity increase changes temperature by -0.15 C') and a bias.",
+    "**Non-linear activations** (ReLU, sigmoid, tanh) are the ingredient that makes depth useful. Without them, stacking layers is equivalent to a single linear transformation -- all the architecture accomplishes nothing.",
+    "**ReLU** is the default activation for hidden layers: simple (zero if negative, identity if positive), fast, and avoids the vanishing gradient problem that plagues sigmoid/tanh.",
+    "**Gradient descent** finds the right weights by repeatedly computing 'which direction reduces the prediction error?' and taking a step in that direction. The learning rate controls step size.",
+    "The **learning rate** is the most consequential hyperparameter: too small means training takes forever (the humidity-temperature weights barely change per step); too large means the weights oscillate and the model gets worse, not better.",
+    "On tabular weather data, neural networks can beat linear regression by capturing non-linear feature interactions, but the improvement is often modest. Tree-based models frequently outperform neural networks on structured data.",
 ])
 
 # ── Navigation ───────────────────────────────────────────────────────────────

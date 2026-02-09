@@ -17,7 +17,6 @@ from utils.ui_components import (
 from utils.constants import CITY_LIST, FEATURE_COLS, FEATURE_LABELS, CITY_COLORS
 
 # ---------------------------------------------------------------------------
-st.set_page_config(page_title="Ch 15: Nonparametric Tests", layout="wide")
 df = load_data()
 fdf = sidebar_filters(df)
 

@@ -27,49 +27,118 @@ from utils.ui_components import (
 
 # ── Header ───────────────────────────────────────────────────────────────────
 chapter_header(49, "Stacking (Stacked Generalization)", part="XI")
-st.markdown(
-    "Stacking is the 'throw everything at the wall' approach to machine learning, "
-    "except it actually works. Instead of picking one model and hoping for the best, "
-    "you train several different models and then train a **meta-learner** that figures "
-    "out the optimal way to combine their predictions. It is not just voting -- it is "
-    "weighted, learned, context-dependent combination. Think of it as hiring a team "
-    "of specialists and then hiring a manager whose only job is to decide which "
-    "specialist to listen to in each situation."
-)
 
 # ── Load data ────────────────────────────────────────────────────────────────
 df = load_data()
 fdf = sidebar_filters(df)
 
-# ── 49.1 How Stacking Works ─────────────────────────────────────────────────
-st.header("49.1  How Stacking Works")
+# ─────────────────────────────────────────────────────────────────────────────
+# SECTION 1: What are we doing and why
+# ─────────────────────────────────────────────────────────────────────────────
+st.markdown(
+    "Let me remind you of the exact task we've been working on, because everything in "
+    "this chapter builds on it."
+)
+st.markdown(
+    "**The task**: We have ~105,000 hourly weather readings from 6 US cities (Dallas, "
+    "San Antonio, Houston, Austin, New York, Los Angeles). Each reading is a row with "
+    "4 numbers: temperature in Celsius, relative humidity as a percentage, wind speed "
+    "in km/h, and surface pressure in hPa. Given *just those 4 numbers* -- no timestamps, "
+    "no city labels, nothing else -- we're trying to predict which city the reading came "
+    "from."
+)
+st.markdown(
+    "Over the past few chapters, we've thrown different algorithms at this problem. "
+    "Logistic regression draws linear decision boundaries in 4D space. Random forests "
+    "ask sequences of yes/no questions ('Is temperature above 22°C? If yes, is humidity "
+    "below 50%?'). KNN looks at the 7 most similar readings in the training data and "
+    "goes with the majority city. Gradient boosting builds trees that each focus on the "
+    "mistakes of previous trees."
+)
+st.markdown(
+    "Each of these models gets a different accuracy. None of them is perfect. But here's "
+    "the interesting observation: **they're wrong about different things**. The random "
+    "forest might confuse Dallas and San Antonio (similar Texas heat) but correctly "
+    "identify NYC. The logistic regression might nail the Dallas/San Antonio distinction "
+    "(slightly different humidity profiles) but struggle with Houston vs Austin. "
+    "What if we could combine their strengths?"
+)
+
+st.divider()
+
+# ─────────────────────────────────────────────────────────────────────────────
+# SECTION 2: The idea, built up from scratch
+# ─────────────────────────────────────────────────────────────────────────────
+st.header("From Voting to Stacking: Building the Intuition")
+
+st.markdown(
+    "The simplest combination strategy is **voting**: ask all 5 models 'which city?', "
+    "take the majority answer. If 3 out of 5 say Houston, the final answer is Houston. "
+    "This is already pretty good -- it's the wisdom of crowds applied to algorithms."
+)
+st.markdown(
+    "But voting treats every model equally, and that's not always fair. Suppose the "
+    "gradient boosting model gets 65% accuracy and the decision tree gets 48%. Should "
+    "their votes count the same? Probably not. What if the KNN model is great at "
+    "identifying LA (dry, warm, low wind) but terrible at distinguishing the Texas "
+    "cities? You'd want to trust KNN when it says 'LA' but be skeptical when it says "
+    "'Dallas.'"
+)
+st.markdown(
+    "**Stacking** takes this idea all the way. Instead of simple voting, you train a "
+    "*second model* -- called the **meta-learner** -- whose job is to look at all the "
+    "base models' predictions and figure out the optimal way to combine them. The "
+    "meta-learner's input isn't weather data. Its input is: 'Model 1 said Houston, "
+    "Model 2 said Dallas, Model 3 said Houston, Model 4 said San Antonio, Model 5 "
+    "said Houston.' From those 5 predictions, the meta-learner outputs a final answer."
+)
+st.markdown(
+    "Think of it as a two-layer system. The bottom layer has 5 specialists who each "
+    "look at the raw weather reading and make their best guess. The top layer has one "
+    "manager who doesn't look at the weather data at all -- the manager only sees the "
+    "specialists' guesses and decides whose opinion to trust."
+)
 
 concept_box(
-    "Two-Level Architecture",
-    "<b>Level 0 (Base Learners)</b>: Train several diverse models -- logistic regression, "
-    "random forest, gradient boosting, KNN, whatever you want. Each generates predictions "
-    "using cross-validation (so the meta-learner never sees predictions on data that was "
-    "used for training, which would be leakage).<br><br>"
-    "<b>Level 1 (Meta-Learner)</b>: A simple model (often logistic regression -- you want "
-    "this to be simple so it does not overfit to the base model quirks) is trained on the "
-    "base learners' predictions. Its job is to figure out: 'When the random forest says "
-    "Dallas and the logistic regression says San Antonio, who should I believe?'"
+    "The Two Levels, Concretely",
+    "Say a weather reading comes in: 28.3°C, 72% humidity, 8.4 km/h wind, 1015.2 hPa.<br><br>"
+    "<b>Level 0 (Base learners)</b> each get this reading and produce a prediction:<br>"
+    "- Logistic Regression → Houston<br>"
+    "- Random Forest → Houston<br>"
+    "- Gradient Boosting → San Antonio<br>"
+    "- KNN → Dallas<br>"
+    "- Decision Tree → Houston<br><br>"
+    "<b>Level 1 (Meta-learner)</b> sees [Houston, Houston, San Antonio, Dallas, Houston] "
+    "and outputs: <b>Houston</b> (confidence: 78%).<br><br>"
+    "Simple voting would also say Houston (3 out of 5). But the meta-learner does "
+    "something smarter: it has <em>learned</em> that when Gradient Boosting disagrees "
+    "with the majority on Texas cities, Gradient Boosting is wrong about 60% of the time. "
+    "So it downweights that dissent. And it has learned that KNN's Dallas predictions "
+    "are unreliable when humidity is high (which it can infer from the pattern of other "
+    "models' predictions). Voting can't do any of this.",
 )
 
 formula_box(
     "Stacking Prediction",
     r"\hat{y} = g\!\left(\hat{y}_1, \hat{y}_2, \ldots, \hat{y}_M\right)",
-    "g() is the meta-learner; y_hat_1..M are base model predictions. The meta-learner learns how to weigh and combine them optimally."
+    "g() is the meta-learner; y_hat_1..M are the base model predictions. The meta-learner "
+    "takes M predictions as input features and outputs the final prediction. It's just "
+    "another classifier, but trained on predictions instead of weather data."
 )
 
-st.markdown("""
-**Why stacking works (when it works):**
-1. **Model diversity**: Different algorithms see the data differently -- linear models, tree models, and distance-based models all have different blind spots.
-2. **Error cancellation**: Where one model fails, another might succeed. The meta-learner can learn to trust different models in different situations.
-3. **Learned combination**: Unlike simple voting, stacking does not treat all models equally. It gives more weight to models that are reliable and less to those that are not.
-""")
+warning_box(
+    "There's a subtle trap here. When generating predictions for the meta-learner to "
+    "train on, the base models MUST make predictions on data they weren't trained on. "
+    "Otherwise you'd be feeding the meta-learner predictions that are unrealistically "
+    "good (the base models have seen those examples before), and the meta-learner "
+    "would learn to trust the base models more than it should. The solution: use "
+    "cross-validation internally. Each base model predicts on its held-out fold, so "
+    "the meta-learner only ever sees honest, out-of-sample predictions."
+)
 
-# ── 49.2 Prepare Data ───────────────────────────────────────────────────────
+st.divider()
+
+# ── Prepare Data ─────────────────────────────────────────────────────────────
 X_train, X_test, y_train, y_test, le, scaler = prepare_classification_data(
     fdf, FEATURE_COLS, target="city", test_size=0.2
 )
@@ -82,8 +151,18 @@ idx = rng.choice(len(X_train), sample_n, replace=False)
 X_tr_s = X_train.iloc[idx]
 y_tr_s = y_train[idx]
 
-# ── 49.3 Individual Base Models ──────────────────────────────────────────────
-st.header("49.2  Base Learner Performance")
+# ─────────────────────────────────────────────────────────────────────────────
+# SECTION 3: Individual base model performance
+# ─────────────────────────────────────────────────────────────────────────────
+st.header("First: How Does Each Model Do Alone?")
+
+st.markdown(
+    "Before we combine anything, let's see what each individual model achieves on our "
+    "city-from-weather task. We train each model on 5,000 weather readings (subsampled "
+    "for speed) and test on a held-out 20% of the full dataset. The 4 input features "
+    "are always the same: temperature, humidity, wind speed, and pressure. The output "
+    "is always one of 6 city labels."
+)
 
 available_models = {
     "Logistic Regression": LogisticRegression(max_iter=1000, random_state=42),
@@ -92,8 +171,6 @@ available_models = {
     "K-Nearest Neighbors": KNeighborsClassifier(n_neighbors=7),
     "Decision Tree": DecisionTreeClassifier(max_depth=10, random_state=42),
 }
-
-st.markdown("First, let us see how each model does on its own. The question is whether combining them can beat the best individual:")
 
 individual_results = []
 for name, model in available_models.items():
@@ -110,6 +187,14 @@ for name, model in available_models.items():
     })
 
 indiv_df = pd.DataFrame(individual_results).sort_values("Test Accuracy", ascending=False)
+
+st.markdown(
+    "**How to read this table**: Train accuracy is how well the model does on data it "
+    "was trained on (easy -- it's seen the answers). Test accuracy is what matters: how "
+    "well does it predict cities from weather readings it has *never seen before*? CV Mean "
+    "is the average 5-fold cross-validation accuracy, a more robust estimate."
+)
+
 st.dataframe(
     indiv_df.style.format({
         "Train Accuracy": "{:.4f}", "Test Accuracy": "{:.4f}",
@@ -120,34 +205,54 @@ st.dataframe(
 
 fig_indiv = px.bar(indiv_df, x="Model", y="Test Accuracy", color="Model",
                    color_discrete_sequence=["#E63946", "#2A9D8F", "#264653", "#FB8500", "#7209B7"],
-                   title="Individual Base Model Test Accuracy")
+                   title="Individual Model Test Accuracy: Predicting City from 4 Weather Features")
 apply_common_layout(fig_indiv, height=400)
 fig_indiv.update_layout(xaxis_tickangle=-20)
 st.plotly_chart(fig_indiv, use_container_width=True)
 
-# ── 49.4 Interactive Model Selection for Stacking ────────────────────────────
-st.header("49.3  Interactive: Build Your Stacking Ensemble")
+best_model_name = indiv_df.iloc[0]["Model"]
+best_model_acc = indiv_df.iloc[0]["Test Accuracy"]
+worst_model_name = indiv_df.iloc[-1]["Model"]
+worst_model_acc = indiv_df.iloc[-1]["Test Accuracy"]
 
 st.markdown(
-    "Now for the fun part: pick your team. Select which base models to include in "
-    "the stacking ensemble and see if the whole is greater than the sum of its parts."
+    f"The best individual model is **{best_model_name}** at {best_model_acc:.1%} test "
+    f"accuracy. The worst is **{worst_model_name}** at {worst_model_acc:.1%}. Remember: "
+    f"random guessing among 6 cities would give 16.7%. So even the worst model is "
+    f"learning something real about how cities differ in their weather fingerprints. "
+    f"The question is: can we do better by combining them?"
+)
+
+st.divider()
+
+# ─────────────────────────────────────────────────────────────────────────────
+# SECTION 4: Interactive stacking
+# ─────────────────────────────────────────────────────────────────────────────
+st.header("Build Your Own Stacking Ensemble")
+
+st.markdown(
+    "Pick which models go on your team (the base learners) and which model acts as "
+    "the manager (the meta-learner). Then we'll compare the stacking ensemble against "
+    "the best individual model and against simple majority voting."
 )
 
 selected_models = st.multiselect(
-    "Base Learners",
+    "Base Learners (pick at least 2)",
     options=list(available_models.keys()),
     default=["Logistic Regression", "Random Forest", "Gradient Boosting"],
     key="stack_models",
 )
 
 meta_learner_choice = st.selectbox(
-    "Meta-Learner",
+    "Meta-Learner (the 'manager' model)",
     ["Logistic Regression", "Random Forest (shallow)"],
     key="meta_learner",
+    help="The meta-learner should be simple. Its input is just the base models' predictions "
+         "(a handful of numbers), not the raw weather data. A complex meta-learner will overfit."
 )
 
 if len(selected_models) < 2:
-    st.warning("Please select at least 2 base models for stacking. A one-person team is not really a team.")
+    st.warning("Select at least 2 base models. Stacking with one model is just... using that model.")
 else:
     # Build estimators list
     estimators = [(name, available_models[name]) for name in selected_models]
@@ -159,7 +264,7 @@ else:
         meta = RandomForestClassifier(n_estimators=30, max_depth=5, random_state=42, n_jobs=-1)
 
     # Stacking
-    with st.spinner("Training stacking ensemble..."):
+    with st.spinner("Training stacking ensemble (5-fold CV internally to generate meta-learner training data)..."):
         stack = StackingClassifier(
             estimators=estimators,
             final_estimator=meta,
@@ -175,15 +280,18 @@ else:
     voting.fit(X_tr_s, y_tr_s)
     voting_test_acc = accuracy_score(y_test, voting.predict(X_test))
 
-    st.subheader("Results")
+    st.subheader("The Verdict")
 
     col1, col2, col3 = st.columns(3)
     best_individual = indiv_df[indiv_df["Model"].isin(selected_models)]["Test Accuracy"].max()
-    col1.metric("Best Individual Base", f"{best_individual:.4f}")
+    col1.metric("Best Individual Base", f"{best_individual:.4f}",
+                help="The best single model among your selected base learners")
     col2.metric("Hard Voting Ensemble", f"{voting_test_acc:.4f}",
-                delta=f"{voting_test_acc - best_individual:+.4f}")
+                delta=f"{voting_test_acc - best_individual:+.4f}",
+                help="Simple majority vote: each model gets one equal vote")
     col3.metric("Stacking Ensemble", f"{stack_test_acc:.4f}",
-                delta=f"{stack_test_acc - best_individual:+.4f}")
+                delta=f"{stack_test_acc - best_individual:+.4f}",
+                help="Meta-learner decides how to weight each model's prediction")
 
     # Comprehensive comparison
     comp_data = []
@@ -201,7 +309,7 @@ else:
                           "Voting Ensemble": "#2A9D8F",
                           "Stacking Ensemble": "#E63946",
                       },
-                      title="Base Learners vs Voting vs Stacking")
+                      title="City Prediction Accuracy: Individual Models vs Ensembles")
     apply_common_layout(fig_comp, height=450)
     fig_comp.update_layout(xaxis_tickangle=-20)
     st.plotly_chart(fig_comp, use_container_width=True)
@@ -213,42 +321,86 @@ else:
     )
 
     if stack_test_acc > best_individual:
+        improvement = (stack_test_acc - best_individual) * 100
         st.success(
-            f"Stacking improved over the best base learner by "
-            f"**{(stack_test_acc - best_individual)*100:.2f} percentage points**! "
-            "The meta-learner found value in combining the models."
+            f"Stacking improved over the best individual model by "
+            f"**{improvement:.2f} percentage points**. That might sound small, "
+            f"but in a 6-class problem where the best model is already decent, "
+            f"squeezing out extra accuracy is hard. The meta-learner found patterns "
+            f"in when to trust which model."
+        )
+    elif stack_test_acc == best_individual:
+        st.info(
+            "Stacking matched but didn't beat the best individual model. This happens "
+            "when one model is already dominant -- it gets most things right, so the "
+            "meta-learner essentially learns to just defer to it."
         )
     else:
         st.info(
-            "Stacking did not improve over the best base learner here. "
-            "This sometimes happens when one model is already so good that the others "
-            "just add noise, or when the base models are not diverse enough -- they all "
-            "make the same mistakes, so there is nothing for the meta-learner to learn."
+            "Stacking didn't beat the best individual model here. This can happen when: "
+            "(1) the base models aren't diverse enough -- they all confuse the same "
+            "city pairs, so combining them doesn't help; (2) the meta-learner overfits "
+            "to the cross-validation predictions; or (3) the best single model is already "
+            "so good there's little room for improvement."
         )
 
     # Confusion matrix for stacking
-    st.subheader("Stacking Confusion Matrix")
+    st.subheader("Where Does the Stacking Ensemble Still Struggle?")
+    st.markdown(
+        "The confusion matrix shows which cities the stacking ensemble confuses. "
+        "Read it row-by-row: each row is the true city, each column is the predicted "
+        "city. Bright diagonal = correct predictions. Off-diagonal = errors."
+    )
     y_stack_pred = stack.predict(X_test)
     metrics_stack = classification_metrics(y_test, y_stack_pred, labels=city_labels)
     fig_cm = plot_confusion_matrix(metrics_stack["confusion_matrix"], city_labels)
     st.plotly_chart(fig_cm, use_container_width=True)
 
-# ── 49.5 Model Diversity Analysis ────────────────────────────────────────────
-st.header("49.4  Why Model Diversity Matters")
+    st.markdown(
+        "Look at the off-diagonal cells. The biggest numbers there show which city "
+        "pairs are hardest to tell apart from weather alone. Dallas and San Antonio? "
+        "Houston and Austin? These are cities with genuinely similar climates, so even "
+        "the combined wisdom of 5 different algorithms struggles to distinguish them "
+        "from a single weather reading."
+    )
 
-concept_box(
-    "Diversity is Key",
-    "Here is the thing about stacking that is not immediately obvious: it only works "
-    "when the base models make <b>different errors</b>. If every model is confused by "
-    "the same examples, combining them accomplishes nothing -- you are just doing the "
-    "same wrong thing five times. The magic happens when model A gets example 17 wrong "
-    "but model B gets it right, and the meta-learner figures out to trust B on examples "
-    "like that. This is why you want models with <b>different inductive biases</b>: "
-    "linear models, tree models, distance-based models -- they see the data differently."
+st.divider()
+
+# ─────────────────────────────────────────────────────────────────────────────
+# SECTION 5: Model diversity
+# ─────────────────────────────────────────────────────────────────────────────
+st.header("Why Stacking Works (When It Works): Model Diversity")
+
+st.markdown(
+    "Here's the key insight: stacking only helps if the base models **disagree about "
+    "different things**. If every model confuses Dallas with San Antonio in the exact "
+    "same situations, combining them is like asking 5 people with the same blindness "
+    "to help you see. You need models with *different* blind spots."
+)
+st.markdown(
+    "Why would different algorithms disagree? Because they work fundamentally "
+    "differently:\n\n"
+    "- **Logistic Regression** draws straight-line boundaries in 4D weather-feature "
+    "space. It might find that 'humidity above 70% AND temperature above 25°C → Houston' "
+    "but can't capture curved boundaries.\n"
+    "- **Random Forest** asks sequential yes/no questions and can capture complex "
+    "interactions ('high temperature + low wind + moderate humidity → Austin') but "
+    "might miss smooth gradients between cities.\n"
+    "- **KNN** says 'find the 7 most similar weather readings in the training data "
+    "and go with their majority city.' It's great at capturing local patterns but "
+    "sensitive to feature scaling.\n\n"
+    "These different approaches mean they'll be right about *different* subsets of "
+    "weather readings, which is exactly what the meta-learner exploits."
 )
 
 # Show prediction agreement matrix
-st.subheader("Prediction Agreement Between Base Models")
+st.subheader("How Often Do the Models Agree?")
+st.markdown(
+    "This heatmap shows, for each pair of models, what fraction of test readings they "
+    "predict the same city for. 1.0 = perfect agreement (they always say the same thing). "
+    "0.17 = they might as well be independent random guessers."
+)
+
 predictions = {}
 for name, model in available_models.items():
     model.fit(X_tr_s, y_tr_s)
@@ -272,51 +424,70 @@ fig_agree.update_layout(xaxis_title="Model", yaxis_title="Model")
 st.plotly_chart(fig_agree, use_container_width=True)
 
 insight_box(
-    "The most useful pairs for stacking are those with agreement around 0.7-0.8. "
-    "They agree on the easy cases (which is reassuring) but disagree on the hard "
-    "ones (which is where the meta-learner can add value). If two models agree 95%+ "
-    "of the time, one of them is redundant. If they agree less than 60%, at least one "
-    "of them might just be bad."
+    "The sweet spot for stacking is agreement around 0.7-0.8 between model pairs. "
+    "That means they agree on the easy readings (a 35°C, 25% humidity reading is "
+    "obviously not NYC in winter -- every model knows that) but disagree on the hard "
+    "ones (a 22°C, 60% humidity reading could plausibly be several cities). If two "
+    "models agree 95%+ of the time, one of them is redundant -- the meta-learner "
+    "can't learn anything by having both."
 )
 
-# ── 49.6 Stacking vs Voting vs Bagging vs Boosting ──────────────────────────
-st.header("49.5  Ensemble Methods Summary")
+# ─────────────────────────────────────────────────────────────────────────────
+# SECTION 6: Summary comparison
+# ─────────────────────────────────────────────────────────────────────────────
+st.header("All the Ensemble Methods We've Learned, Side by Side")
+
+st.markdown(
+    "We've now covered four ensemble strategies across three chapters. Here's how "
+    "they compare -- all applied to the same task of predicting city from weather:"
+)
 
 summary_df = pd.DataFrame({
-    "Method": ["Bagging", "Boosting", "Voting", "Stacking"],
+    "Method": ["Bagging (Ch 47)", "Boosting (Ch 48)", "Voting", "Stacking"],
     "Strategy": [
-        "Train same model on bootstrap samples",
-        "Train models sequentially on residuals",
-        "Take majority vote / average",
-        "Train meta-learner on base predictions",
+        "Train same model (e.g. decision tree) on random subsets of the data",
+        "Train models sequentially, each one focusing on the previous one's errors",
+        "Train different models, take majority vote",
+        "Train different models, then train a meta-learner to combine their predictions",
     ],
-    "Diversity Source": [
-        "Random samples + random features",
-        "Focus on different errors each round",
-        "Different model types",
-        "Different model types + learned combination",
+    "What it combines": [
+        "Same algorithm, different data samples",
+        "Same algorithm, different error focus",
+        "Different algorithms, equal weight",
+        "Different algorithms, learned weights",
     ],
-    "Reduces": ["Variance", "Bias", "Both (somewhat)", "Both"],
-    "Complexity": ["Low", "Medium", "Low", "High"],
+    "Main benefit": [
+        "Reduces variance (less overfitting)",
+        "Reduces bias (better accuracy)",
+        "Simple error cancellation",
+        "Optimal combination (when models are diverse)",
+    ],
 })
 st.dataframe(summary_df, use_container_width=True, hide_index=True)
+
+st.divider()
 
 code_example("""from sklearn.ensemble import StackingClassifier, VotingClassifier
 from sklearn.linear_model import LogisticRegression
 from sklearn.ensemble import RandomForestClassifier, GradientBoostingClassifier
 
-# Define base learners
+# Our task: predict city from 4 weather features
+# X = [[temp, humidity, wind, pressure], ...] — shape (n_samples, 4)
+# y = ['Dallas', 'NYC', 'Houston', ...] — city labels
+
+# Define base learners (diverse algorithms)
 estimators = [
-    ('lr', LogisticRegression(max_iter=1000)),
-    ('rf', RandomForestClassifier(n_estimators=50)),
-    ('gb', GradientBoostingClassifier(n_estimators=50)),
+    ('lr', LogisticRegression(max_iter=1000)),    # linear boundaries
+    ('rf', RandomForestClassifier(n_estimators=50)),  # tree-based
+    ('gb', GradientBoostingClassifier(n_estimators=50)),  # boosted trees
 ]
 
-# Simple voting
+# Simple voting: each model gets one vote, majority wins
 voting = VotingClassifier(estimators=estimators, voting='hard')
 voting.fit(X_train, y_train)
 
-# Stacking with meta-learner
+# Stacking: meta-learner (logistic regression) learns to combine predictions
+# cv=5 means base models use 5-fold CV to generate meta-learner training data
 stacking = StackingClassifier(
     estimators=estimators,
     final_estimator=LogisticRegression(),
@@ -329,40 +500,85 @@ print(f"Stacking accuracy: {stacking.score(X_test, y_test):.4f}")
 # ── Quiz ─────────────────────────────────────────────────────────────────────
 st.divider()
 quiz(
-    "What role does the meta-learner play in stacking?",
+    "A weather reading is 28°C, 71% humidity, 9 km/h wind, 1014 hPa. The logistic "
+    "regression says Houston, the random forest says Houston, the KNN says Dallas, "
+    "gradient boosting says San Antonio, and the decision tree says Houston. "
+    "What does a simple majority vote predict?",
     [
-        "It replaces all base models",
-        "It learns the optimal way to combine base model predictions",
-        "It trains the base models faster",
-        "It performs feature selection",
+        "Dallas",
+        "San Antonio",
+        "Houston (3 out of 5 votes)",
+        "It's a tie",
     ],
-    correct_idx=1,
-    explanation="The meta-learner takes base model predictions as its input features and learns how to combine them optimally. It is the manager who figures out which specialist to listen to in which situation.",
+    correct_idx=2,
+    explanation=(
+        "Three models say Houston, one says Dallas, one says San Antonio. Majority "
+        "vote goes with Houston. Stacking might reach the same conclusion but for a "
+        "different reason: it has learned that when the logistic regression and random "
+        "forest agree on a Texas city, they're usually right -- so it weighs their "
+        "agreement more heavily than the raw vote count."
+    ),
     key="ch49_quiz1",
 )
 
 quiz(
-    "Stacking works best when base models are:",
+    "Your 5 base models agree on the predicted city 95% of the time. Will stacking help much?",
     [
-        "All the same algorithm with different hyperparameters",
-        "As diverse as possible (different algorithms, different errors)",
-        "Trained on the same features only",
-        "All very complex models",
+        "Yes — more models always helps",
+        "No — if they always agree, combining them adds nothing new",
+        "Only if the meta-learner is very complex",
+        "Only if you add more features",
     ],
     correct_idx=1,
-    explanation="Diversity is the key ingredient. If all your models make the same mistakes, combining them cannot help. You want models that are individually decent but wrong in different ways.",
+    explanation=(
+        "Stacking exploits *disagreement* between models. If they agree 95% of the time, "
+        "the meta-learner can only do something useful on the remaining 5% of readings. "
+        "And even on those, it might not help much. You'd get more from adding a genuinely "
+        "different type of model (say, an SVM if you only have tree-based models) to create "
+        "more diversity."
+    ),
     key="ch49_quiz2",
+)
+
+quiz(
+    "Why must base model predictions for the meta-learner be generated via cross-validation?",
+    [
+        "To make training faster",
+        "To prevent data leakage — the meta-learner would see unrealistically good predictions otherwise",
+        "To increase model diversity",
+        "Because sklearn requires it",
+    ],
+    correct_idx=1,
+    explanation=(
+        "If you let base models predict on data they trained on, their predictions would "
+        "be unrealistically accurate (they've seen the answers). The meta-learner would "
+        "learn to trust them unconditionally. Then at test time, when base model "
+        "predictions are honest (and worse), the meta-learner wouldn't be calibrated "
+        "for that. Cross-validation ensures the meta-learner only sees predictions of "
+        "the same quality it will encounter at test time."
+    ),
+    key="ch49_quiz3",
 )
 
 # ── Takeaways ────────────────────────────────────────────────────────────────
 st.divider()
 takeaways([
-    "**Stacking** uses a meta-learner to combine diverse base model predictions -- not just voting, but learned, optimized combination.",
-    "Base models should be as **diverse** as possible. Mix linear models, tree models, and distance-based models for maximum complementarity.",
-    "The meta-learner is typically a simple model (logistic regression) to avoid overfitting. You do not want the manager to be more complicated than the team.",
-    "Cross-validation is used internally to generate honest out-of-fold predictions for training the meta-learner, avoiding leakage.",
-    "Stacking can outperform individual models and simple voting, but not always -- it depends on whether the base models bring genuinely different perspectives.",
-    "Use the **prediction agreement matrix** to assess diversity: look for 0.7-0.8 agreement between pairs.",
+    "**The task**: predict which of 6 cities a weather reading came from, using 4 "
+    "features (temperature, humidity, wind speed, pressure). Stacking combines "
+    "multiple models' predictions via a learned meta-model.",
+    "**Stacking vs voting**: Voting treats all models equally. Stacking learns which "
+    "model to trust in which situation -- it might trust KNN when it says 'LA' but "
+    "defer to gradient boosting for Texas cities.",
+    "**Diversity is everything**: Stacking only helps when base models make different "
+    "errors. Five copies of the same algorithm give you nothing. Mix linear, tree-based, "
+    "and distance-based models.",
+    "**The meta-learner should be simple** (usually logistic regression). Its input is "
+    "just a handful of predictions, not the full weather data. A complex meta-learner "
+    "overfits to noise in the base models' cross-validation predictions.",
+    "**Cross-validation prevents leakage**: Base model predictions for meta-learner "
+    "training must be out-of-fold, so the meta-learner sees honest predictions.",
+    "**Check the agreement matrix**: 0.7-0.8 agreement between model pairs is ideal. "
+    "Too high = redundancy. Too low = at least one model is bad.",
 ])
 
 # ── Navigation ───────────────────────────────────────────────────────────────
