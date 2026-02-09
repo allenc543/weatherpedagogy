@@ -117,8 +117,8 @@ if datetime_feats:
 
 formula_box(
     "Cyclical Encoding",
-    r"\text{hour\_sin} = \sin\!\left(\frac{2\pi \cdot h}{24}\right), \quad "
-    r"\text{hour\_cos} = \cos\!\left(\frac{2\pi \cdot h}{24}\right)",
+    r"\underbrace{\text{hour\_sin}}_{\text{sine component}} = \sin\!\left(\frac{2\pi \cdot \underbrace{h}_{\text{hour (0--23)}}}{24}\right), \quad "
+    r"\underbrace{\text{hour\_cos}}_{\text{cosine component}} = \cos\!\left(\frac{2\pi \cdot h}{24}\right)",
     "The (sin, cos) pair traces a circle. Two hours that are close in real life "
     "are close in this encoding, regardless of where the 'midnight boundary' falls."
 )
@@ -254,7 +254,7 @@ if use_temp_range:
 if use_dewpoint:
     formula_box(
         "Dew Point Approximation",
-        r"T_{dew} \approx T - \frac{100 - RH}{5}",
+        r"\underbrace{T_{dew}}_{\text{dew point}} \approx \underbrace{T}_{\text{air temp}} - \frac{100 - \underbrace{RH}_{\text{relative humidity}}}{5}",
         "This is a quick-and-dirty approximation that works surprisingly well "
         "for moderate humidity levels. The real formula involves logarithms, but "
         "this gets you within a degree or two in most conditions."

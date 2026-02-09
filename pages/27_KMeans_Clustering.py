@@ -60,7 +60,7 @@ concept_box(
 
 formula_box(
     "Objective: Minimize Within-Cluster Sum of Squares (Inertia)",
-    r"\min \sum_{k=1}^{K} \sum_{\mathbf{x}_i \in C_k} \|\mathbf{x}_i - \boldsymbol{\mu}_k\|^2",
+    r"\min \underbrace{\sum_{k=1}^{K}}_{\text{over all clusters}} \underbrace{\sum_{\mathbf{x}_i \in C_k}}_{\text{points in cluster k}} \underbrace{\|\mathbf{x}_i - \boldsymbol{\mu}_k\|^2}_{\text{squared dist to centroid}}",
     "Where C_k is cluster k and mu_k is its centroid. K-Means minimizes the total "
     "squared distance from points to their assigned centroids. It is a greedy algorithm -- "
     "it finds a local minimum, not necessarily the global one, which is why running it "

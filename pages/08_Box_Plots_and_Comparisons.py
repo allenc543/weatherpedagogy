@@ -49,7 +49,7 @@ concept_box(
 
 formula_box(
     "Outlier Fences",
-    r"\text{Lower fence} = Q1 - 1.5 \times IQR, \quad \text{Upper fence} = Q3 + 1.5 \times IQR",
+    r"\underbrace{\text{Lower fence}}_{\text{outlier cutoff}} = \underbrace{Q1}_{\text{25th percentile}} - 1.5 \times \underbrace{IQR}_{\text{Q3 - Q1}}, \quad \underbrace{\text{Upper fence}}_{\text{outlier cutoff}} = \underbrace{Q3}_{\text{75th percentile}} + 1.5 \times IQR",
     "Anything outside these fences gets plotted as an individual point. The 1.5 multiplier "
     "is Tukey's convention -- not derived from first principles, but empirically excellent.",
 )

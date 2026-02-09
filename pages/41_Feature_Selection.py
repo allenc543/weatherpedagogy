@@ -104,7 +104,7 @@ if method in ["Mutual Information (Filter)", "Compare All"]:
 
     formula_box(
         "Mutual Information",
-        r"I(X; Y) = \sum_{x,y} p(x,y) \log \frac{p(x,y)}{p(x)p(y)}",
+        r"\underbrace{I(X; Y)}_{\text{shared information}} = \sum_{x,y} \underbrace{p(x,y)}_{\text{joint probability}} \log \frac{\underbrace{p(x,y)}_{\text{joint probability}}}{\underbrace{p(x)}_{\text{feature prior}} \underbrace{p(y)}_{\text{target prior}}}",
         "MI = 0 when X and Y are independent; higher values mean stronger "
         "dependence. It is like correlation's cooler, more general cousin."
     )
@@ -200,7 +200,7 @@ if method in ["Lasso Path (Embedded)", "Compare All"]:
 
     formula_box(
         "Lasso Objective",
-        r"\min_\beta \frac{1}{2n} \|y - X\beta\|^2_2 + \alpha \|\beta\|_1",
+        r"\min_\beta \underbrace{\frac{1}{2n} \|y - X\beta\|^2_2}_{\text{prediction error}} + \underbrace{\alpha}_{\text{penalty strength}} \underbrace{\|\beta\|_1}_{\text{sum of abs coefficients}}",
         "The L1 penalty (alpha times the sum of absolute coefficient values) "
         "encourages sparsity. Bigger alpha = more features driven to zero."
     )

@@ -51,14 +51,14 @@ concept_box(
 
 formula_box(
     "Bayes' Theorem for Classification",
-    r"P(\text{city} \mid \mathbf{x}) = \frac{P(\mathbf{x} \mid \text{city}) \cdot P(\text{city})}{P(\mathbf{x})}",
+    r"\underbrace{P(\text{city} \mid \mathbf{x})}_{\text{posterior probability}} = \frac{\underbrace{P(\mathbf{x} \mid \text{city})}_{\text{likelihood of features}} \cdot \underbrace{P(\text{city})}_{\text{prior frequency}}}{\underbrace{P(\mathbf{x})}_{\text{evidence (constant)}}}",
     "Posterior = (Likelihood x Prior) / Evidence. The evidence term P(x) is the same for "
     "all cities, so in practice we just compare the numerators and pick the winner."
 )
 
 formula_box(
     "Naive Assumption (Feature Independence)",
-    r"P(\mathbf{x} \mid \text{city}) = \prod_{j=1}^{p} P(x_j \mid \text{city})",
+    r"\underbrace{P(\mathbf{x} \mid \text{city})}_{\text{joint likelihood}} = \underbrace{\prod_{j=1}^{p}}_{\text{multiply over features}} \underbrace{P(x_j \mid \text{city})}_{\text{single feature likelihood}}",
     "This is the 'naive' part: we assume each feature is independent given the class. "
     "So instead of estimating the joint distribution of all features (which requires "
     "exponentially many parameters), we just estimate each feature's distribution "

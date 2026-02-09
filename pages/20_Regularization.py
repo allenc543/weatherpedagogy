@@ -42,13 +42,13 @@ col1, col2 = st.columns(2)
 with col1:
     formula_box(
         "Ridge Regression (L2 penalty)",
-        r"\min_\beta \sum (y_i - X_i \beta)^2 + \alpha \sum_{j=1}^{p} \beta_j^2",
+        r"\min_\beta \underbrace{\sum (y_i - X_i \beta)^2}_{\text{squared error (fit)}} + \underbrace{\alpha}_{\text{penalty strength}} \underbrace{\sum_{j=1}^{p} \beta_j^2}_{\text{L2 penalty (squared coefs)}}",
         "Ridge adds a tax proportional to the SQUARE of each coefficient. This shrinks everything toward zero, but never all the way. It's the polite form of regularization -- it tells each coefficient to calm down, but doesn't kick any of them out entirely.",
     )
 with col2:
     formula_box(
         "Lasso Regression (L1 penalty)",
-        r"\min_\beta \sum (y_i - X_i \beta)^2 + \alpha \sum_{j=1}^{p} |\beta_j|",
+        r"\min_\beta \underbrace{\sum (y_i - X_i \beta)^2}_{\text{squared error (fit)}} + \underbrace{\alpha}_{\text{penalty strength}} \underbrace{\sum_{j=1}^{p} |\beta_j|}_{\text{L1 penalty (abs coefs)}}",
         "Lasso uses the ABSOLUTE value instead of the square. This seemingly minor change has a dramatic consequence: Lasso can drive coefficients all the way to exactly zero, effectively removing features from the model. It's regularization that does feature selection for free.",
     )
 
@@ -74,7 +74,7 @@ st.dataframe(comp_df, use_container_width=True, hide_index=True)
 
 formula_box(
     "The alpha hyperparameter: How Much Restraint?",
-    r"\alpha = 0 \implies \text{OLS (no penalty)} \qquad \alpha \to \infty \implies \text{all } \beta_j \to 0",
+    r"\underbrace{\alpha = 0}_{\text{no regularization}} \implies \text{OLS (no penalty)} \qquad \underbrace{\alpha \to \infty}_{\text{max regularization}} \implies \text{all } \underbrace{\beta_j}_{\text{coefficients}} \to 0",
     "Alpha is the dial that controls how much you penalize large coefficients. Alpha = 0 means no regularization (you're back to OLS). Alpha = infinity means all coefficients get squashed to zero (you're predicting the mean for everyone). Somewhere in between is the sweet spot.",
 )
 

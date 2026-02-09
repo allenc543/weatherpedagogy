@@ -46,7 +46,7 @@ concept_box(
     "popular ice cream flavor). For continuous data it's usually not very helpful."
 )
 
-formula_box("Arithmetic Mean", r"\bar{x} = \frac{1}{n}\sum_{i=1}^{n} x_i")
+formula_box("Arithmetic Mean", r"\underbrace{\bar{x}}_{\text{sample mean}} = \frac{1}{\underbrace{n}_{\text{sample size}}}\sum_{i=1}^{n} \underbrace{x_i}_{\text{each observation}}")
 
 # ── 2.2 Measures of Spread ──────────────────────────────────────────────────
 st.header("2.2  Measures of Spread")
@@ -68,7 +68,7 @@ concept_box(
 
 formula_box(
     "Sample Standard Deviation",
-    r"s = \sqrt{\frac{1}{n-1}\sum_{i=1}^{n}(x_i - \bar{x})^2}",
+    r"\underbrace{s}_{\text{sample std dev}} = \sqrt{\frac{1}{\underbrace{n-1}_{\text{Bessel's correction}}}\sum_{i=1}^{n}(\underbrace{x_i}_{\text{observation}} - \underbrace{\bar{x}}_{\text{sample mean}})^2}",
     "Why n-1 instead of n? This is Bessel's correction. When you estimate spread "
     "from a sample, dividing by n slightly underestimates the true variance. Dividing "
     "by n-1 fixes that. It's one of those things that sounds like a technicality until "

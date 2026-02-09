@@ -45,7 +45,7 @@ concept_box(
 
 formula_box(
     "KL Divergence Objective",
-    r"C = \sum_i \sum_j p_{ij} \log \frac{p_{ij}}{q_{ij}}",
+    r"\underbrace{C}_{\text{KL divergence cost}} = \sum_i \sum_j \underbrace{p_{ij}}_{\text{high-D similarity}} \log \frac{p_{ij}}{\underbrace{q_{ij}}_{\text{low-D similarity}}}",
     "p_ij = pairwise similarities in high-D (Gaussian kernel), q_ij = pairwise "
     "similarities in low-D (Student-t with 1 degree of freedom). The heavy tail "
     "of the Student-t is what prevents the 'crowding problem' -- it gives points "

@@ -39,13 +39,13 @@ col1, col2 = st.columns(2)
 with col1:
     formula_box(
         "The Linear Model",
-        r"\hat{y} = \beta_0 + \beta_1 x",
+        r"\underbrace{\hat{y}}_{\text{predicted temp}} = \underbrace{\beta_0}_{\text{intercept (baseline)}} + \underbrace{\beta_1}_{\text{slope (per-unit change)}} \cdot \underbrace{x}_{\text{predictor input}}",
         "beta_0 is the intercept (the predicted y when x = 0, which may or may not be meaningful depending on your data). beta_1 is the slope -- for every 1-unit increase in x, y changes by beta_1 units. That's the number everyone cares about.",
     )
 with col2:
     formula_box(
         "R-squared (Coefficient of Determination)",
-        r"R^2 = 1 - \frac{SS_{\text{res}}}{SS_{\text{tot}}} = 1 - \frac{\sum (y_i - \hat{y}_i)^2}{\sum (y_i - \bar{y})^2}",
+        r"\underbrace{R^2}_{\text{goodness of fit}} = 1 - \frac{\underbrace{SS_{\text{res}}}_{\text{residual sum of sq}}}{\underbrace{SS_{\text{tot}}}_{\text{total sum of sq}}} = 1 - \frac{\sum (\underbrace{y_i}_{\text{actual}} - \underbrace{\hat{y}_i}_{\text{predicted}})^2}{\sum (y_i - \underbrace{\bar{y}}_{\text{mean}})^2}",
         "What fraction of y's variability does the model explain? R-squared = 0 means the model is no better than just predicting the mean every time. R-squared = 1 means the model captures everything. In practice, you live somewhere in between and argue about whether 0.6 is 'good enough.'",
     )
 

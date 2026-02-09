@@ -40,14 +40,14 @@ col1, col2 = st.columns(2)
 with col1:
     formula_box(
         "Pearson Correlation (r)",
-        r"r = \frac{\sum (x_i - \bar{x})(y_i - \bar{y})}"
+        r"\underbrace{r}_{\text{Pearson correlation}} = \frac{\sum (\underbrace{x_i}_{\text{x value}} - \underbrace{\bar{x}}_{\text{x mean}})(\underbrace{y_i}_{\text{y value}} - \underbrace{\bar{y}}_{\text{y mean}})}"
         r"{\sqrt{\sum (x_i - \bar{x})^2 \sum (y_i - \bar{y})^2}}",
         "Measures LINEAR association. If the relationship is curved (like, say, temperature vs day-of-year), Pearson will underestimate it. Also sensitive to outliers -- one weird data point can move r substantially.",
     )
 with col2:
     formula_box(
         "Spearman Rank Correlation (rho)",
-        r"\rho = 1 - \frac{6 \sum d_i^2}{n(n^2 - 1)}",
+        r"\underbrace{\rho}_{\text{Spearman correlation}} = 1 - \frac{6 \sum \underbrace{d_i^2}_{\text{rank diff squared}}}{\underbrace{n}_{\text{sample size}}(n^2 - 1)}",
         "Measures MONOTONIC association using ranks. If one variable always increases when the other does (even non-linearly), Spearman will catch it. More robust to outliers because it only cares about ordering, not magnitude.",
     )
 
@@ -235,7 +235,7 @@ concept_box(
 
 formula_box(
     "Partial Correlation",
-    r"r_{xy \cdot z} = \frac{r_{xy} - r_{xz} \cdot r_{yz}}"
+    r"\underbrace{r_{xy \cdot z}}_{\text{partial correlation}} = \frac{\underbrace{r_{xy}}_{\text{raw x-y corr}} - \underbrace{r_{xz}}_{\text{x-confounder corr}} \cdot \underbrace{r_{yz}}_{\text{y-confounder corr}}}"
     r"{\sqrt{(1 - r_{xz}^2)(1 - r_{yz}^2)}}",
     "The correlation between x and y after subtracting out whatever z explains about each of them. If this drops to near zero, the original correlation was largely an artifact of the confounder.",
 )

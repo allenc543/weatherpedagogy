@@ -47,7 +47,7 @@ concept_box(
 
 formula_box(
     "Covariance Matrix Eigen-Decomposition",
-    r"\Sigma = V \Lambda V^T",
+    r"\underbrace{\Sigma}_{\text{covariance matrix}} = \underbrace{V}_{\text{principal directions}} \underbrace{\Lambda}_{\text{variance per axis}} \underbrace{V^T}_{\text{directions transposed}}",
     "V contains the eigenvectors (the new axes, i.e., principal directions) and "
     "Lambda contains the eigenvalues, which tell you how much variance lives along "
     "each direction. Bigger eigenvalue = more interesting axis."

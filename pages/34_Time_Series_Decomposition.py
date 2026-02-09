@@ -47,7 +47,7 @@ concept_box(
 
 formula_box(
     "Additive Decomposition",
-    r"Y_t = T_t + S_t + R_t",
+    r"\underbrace{Y_t}_{\text{observed temp}} = \underbrace{T_t}_{\text{long-term trend}} + \underbrace{S_t}_{\text{seasonal pattern}} + \underbrace{R_t}_{\text{residual noise}}",
     "You use this when the seasonal swings stay roughly the same size regardless "
     "of the level. Temperature data almost always works this way -- a 20-degree "
     "summer-winter swing is a 20-degree swing whether the baseline is 15 or 18."
@@ -55,7 +55,7 @@ formula_box(
 
 formula_box(
     "Multiplicative Decomposition",
-    r"Y_t = T_t \times S_t \times R_t",
+    r"\underbrace{Y_t}_{\text{observed value}} = \underbrace{T_t}_{\text{long-term trend}} \times \underbrace{S_t}_{\text{seasonal multiplier}} \times \underbrace{R_t}_{\text{residual factor}}",
     "You use this when the seasonal swings grow proportionally with the trend. "
     "Think of monthly ice cream sales as the overall market grows -- the peaks "
     "get taller as the baseline rises."

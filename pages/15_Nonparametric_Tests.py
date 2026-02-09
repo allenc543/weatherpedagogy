@@ -49,7 +49,7 @@ col1, col2 = st.columns(2)
 with col1:
     formula_box(
         "Mann-Whitney U statistic",
-        r"U = n_1 n_2 + \frac{n_1(n_1+1)}{2} - R_1",
+        r"\underbrace{U}_{\text{test statistic}} = \underbrace{n_1}_{\text{group 1 size}} \underbrace{n_2}_{\text{group 2 size}} + \frac{n_1(n_1+1)}{2} - \underbrace{R_1}_{\text{rank sum, group 1}}",
         "where R_1 is the sum of ranks for group 1. The core question: if you randomly "
         "picked one observation from each group, would one group's values tend to be "
         "larger than the other's? U captures this tendency.",
@@ -57,7 +57,7 @@ with col1:
 with col2:
     formula_box(
         "Kruskal-Wallis H statistic",
-        r"H = \frac{12}{N(N+1)} \sum_{i=1}^{k} \frac{R_i^2}{n_i} - 3(N+1)",
+        r"\underbrace{H}_{\text{test statistic}} = \frac{12}{\underbrace{N}_{\text{total obs}}(N+1)} \sum_{i=1}^{\underbrace{k}_{\text{num groups}}} \frac{\underbrace{R_i^2}_{\text{rank sum squared}}}{\underbrace{n_i}_{\text{group size}}} - 3(N+1)",
         "The ANOVA of ranks. It asks: do the average ranks differ across k groups more "
         "than you'd expect by chance? If H is large, at least one group's values tend "
         "to be systematically higher or lower than the others.",

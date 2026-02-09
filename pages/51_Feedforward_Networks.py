@@ -95,7 +95,7 @@ concept_box(
 
 formula_box(
     "Forward Pass",
-    r"\mathbf{h}^{(l)} = \sigma\!\left(\mathbf{W}^{(l)}\mathbf{h}^{(l-1)} + \mathbf{b}^{(l)}\right)",
+    r"\underbrace{\mathbf{h}^{(l)}}_{\text{layer } l \text{ output}} = \underbrace{\sigma}_{\text{activation function}}\!\left(\underbrace{\mathbf{W}^{(l)}}_{\text{weight matrix}}\underbrace{\mathbf{h}^{(l-1)}}_{\text{previous layer output}} + \underbrace{\mathbf{b}^{(l)}}_{\text{bias vector}}\right)",
     "Each layer transforms the previous layer's output through weights W, bias b, "
     "and activation function sigma. In plain English: layer 2 takes the 4 numbers "
     "from layer 1, multiplies each by a learned weight, adds them up, adds a bias "

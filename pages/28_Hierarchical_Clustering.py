@@ -55,7 +55,7 @@ st.markdown("""
 
 formula_box(
     "Ward's Linkage",
-    r"d(C_i, C_j) = \sqrt{\frac{2 n_i n_j}{n_i + n_j}} \|\boldsymbol{\mu}_i - \boldsymbol{\mu}_j\|",
+    r"\underbrace{d(C_i, C_j)}_{\text{cluster distance}} = \sqrt{\underbrace{\frac{2 n_i n_j}{n_i + n_j}}_{\text{size-weighted factor}}} \; \underbrace{\|\boldsymbol{\mu}_i - \boldsymbol{\mu}_j\|}_{\text{centroid separation}}",
     "Merges the pair of clusters that causes the smallest increase in total within-cluster variance."
 )
 

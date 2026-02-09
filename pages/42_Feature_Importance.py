@@ -214,9 +214,9 @@ concept_box(
 
 formula_box(
     "Shapley Value",
-    r"\phi_i = \sum_{S \subseteq F \setminus \{i\}} "
-    r"\frac{|S|!\,(|F|-|S|-1)!}{|F|!} "
-    r"\left[ f(S \cup \{i\}) - f(S) \right]",
+    r"\underbrace{\phi_i}_{\text{feature i credit}} = \sum_{\underbrace{S \subseteq F \setminus \{i\}}_{\text{all feature subsets}}} "
+    r"\underbrace{\frac{|S|!\,(|F|-|S|-1)!}{|F|!}}_{\text{fairness weight}} "
+    r"\left[ \underbrace{f(S \cup \{i\})}_{\text{with feature i}} - \underbrace{f(S)}_{\text{without feature i}} \right]",
     "The weighted average of feature i's marginal contribution across all "
     "possible coalitions S of other features. The combinatorial weighting "
     "ensures fairness -- features that contribute more in more contexts get "

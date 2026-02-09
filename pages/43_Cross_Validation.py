@@ -51,7 +51,7 @@ concept_box(
 
 formula_box(
     "Common Split Ratios",
-    r"\text{Train} : \text{Test} = 80\!:\!20 \quad\text{or}\quad 70\!:\!30",
+    r"\underbrace{\text{Train}}_{\text{model learns from}} : \underbrace{\text{Test}}_{\text{unseen evaluation}} = 80\!:\!20 \quad\text{or}\quad 70\!:\!30",
     "The exact ratio depends on how much data you have. With a million rows, you can afford a tiny test set. With a thousand, you might want 30% held out. There is no magic number, but 80/20 is the default people reach for when they do not want to think too hard about it."
 )
 
@@ -109,7 +109,7 @@ concept_box(
 
 formula_box(
     "CV Score",
-    r"\text{CV Score} = \frac{1}{K}\sum_{k=1}^{K} \text{Score}_k",
+    r"\underbrace{\text{CV Score}}_{\text{average performance}} = \frac{1}{\underbrace{K}_{\text{number of folds}}}\sum_{k=1}^{K} \underbrace{\text{Score}_k}_{\text{fold k accuracy}}",
     "The standard deviation across folds is just as interesting as the mean -- it tells you how sensitive the model is to which data it happens to train on. High std means your model is fickle; low std means it is reliable."
 )
 

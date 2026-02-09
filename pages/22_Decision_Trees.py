@@ -82,7 +82,7 @@ col_g, col_e = st.columns(2)
 with col_g:
     formula_box(
         "Gini Impurity",
-        r"G = 1 - \sum_{k=1}^{K} p_k^2",
+        r"\underbrace{G}_{\text{Gini impurity}} = 1 - \underbrace{\sum_{k=1}^{K}}_{\text{over all classes}} \underbrace{p_k^2}_{\text{class proportion squared}}",
         "Imagine picking two random samples from a node. Gini impurity is the probability "
         "that they would have different labels. Ranges from 0 (everyone agrees, pure node) "
         "to 1 - 1/K (maximum chaos)."
@@ -90,7 +90,7 @@ with col_g:
 with col_e:
     formula_box(
         "Entropy (Information Gain)",
-        r"H = -\sum_{k=1}^{K} p_k \log_2(p_k)",
+        r"\underbrace{H}_{\text{entropy}} = -\underbrace{\sum_{k=1}^{K}}_{\text{over all classes}} \underbrace{p_k}_{\text{class proportion}} \underbrace{\log_2(p_k)}_{\text{bits of surprise}}",
         "Borrowed from information theory. How many bits do you need to encode which class "
         "a random sample belongs to? A pure node needs 0 bits. Maximum entropy is when you "
         "genuinely have no idea."

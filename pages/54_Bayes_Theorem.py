@@ -97,7 +97,7 @@ concept_box(
 
 formula_box(
     "Bayes' Theorem",
-    r"P(H_i \mid E) = \frac{P(E \mid H_i) \, P(H_i)}{\sum_j P(E \mid H_j) \, P(H_j)}",
+    r"\underbrace{P(H_i \mid E)}_{\text{posterior probability}} = \frac{\underbrace{P(E \mid H_i)}_{\text{likelihood of evidence}} \, \underbrace{P(H_i)}_{\text{prior belief}}}{\underbrace{\sum_j P(E \mid H_j) \, P(H_j)}_{\text{total evidence}}}",
     "The denominator sums over all hypotheses (all 6 cities) to ensure the posterior "
     "probabilities add to 1. It is bookkeeping, not deep philosophy, but it is bookkeeping "
     "that matters -- without it your probabilities would not be probabilities.",

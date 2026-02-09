@@ -53,7 +53,7 @@ concept_box(
 
 formula_box(
     "Euclidean Distance",
-    r"d(\mathbf{x}, \mathbf{x}') = \sqrt{\sum_{j=1}^{p} (x_j - x_j')^2}",
+    r"\underbrace{d(\mathbf{x}, \mathbf{x}')}_{\text{distance between readings}} = \sqrt{\underbrace{\sum_{j=1}^{p}}_{\text{over all features}} \underbrace{(x_j - x_j')^2}_{\text{squared feature diff}}}",
     "The most common distance metric. But notice something crucial: this formula treats "
     "all features equally. If one feature ranges from 0 to 1000 and another from 0 to 1, "
     "the big feature will completely dominate the distance calculation. This is about to "

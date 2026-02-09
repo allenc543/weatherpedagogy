@@ -166,7 +166,7 @@ st.markdown(
 
 formula_box(
     "The Decomposition",
-    r"\mathbb{E}\!\left[(y - \hat{f}(x))^2\right] = \text{Bias}[\hat{f}(x)]^2 + \text{Var}[\hat{f}(x)] + \sigma^2",
+    r"\underbrace{\mathbb{E}\!\left[(y - \hat{f}(x))^2\right]}_{\text{total prediction error}} = \underbrace{\text{Bias}[\hat{f}(x)]^2}_{\text{too-simple error}} + \underbrace{\text{Var}[\hat{f}(x)]}_{\text{noise-chasing error}} + \underbrace{\sigma^2}_{\text{irreducible weather noise}}",
     "Your prediction error on any new data point is exactly the sum of three things: "
     "(1) how far off your model is on average (bias squared), (2) how much your model "
     "bounces around depending on which training data it saw (variance), and (3) the "

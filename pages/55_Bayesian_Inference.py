@@ -73,9 +73,8 @@ concept_box(
 
 formula_box(
     "Normal-Normal Conjugate Update",
-    r"\mu_{\text{post}} = \frac{\frac{\mu_0}{\sigma_0^2} + \frac{n \bar{x}}{\sigma^2}}"
-    r"{\frac{1}{\sigma_0^2} + \frac{n}{\sigma^2}}, \quad "
-    r"\sigma_{\text{post}}^2 = \frac{1}{\frac{1}{\sigma_0^2} + \frac{n}{\sigma^2}}",
+    r"\underbrace{\mu_{\text{post}}}_{\text{posterior mean}} = \frac{\frac{\overbrace{\mu_0}^{\text{prior mean}}}{\underbrace{\sigma_0^2}_{\text{prior variance}}} + \frac{\overbrace{n}^{\text{sample size}} \, \overbrace{\bar{x}}^{\text{sample mean}}}{\underbrace{\sigma^2}_{\text{data variance}}}}{\underbrace{\frac{1}{\sigma_0^2} + \frac{n}{\sigma^2}}_{\text{total precision}}}, \quad "
+    r"\underbrace{\sigma_{\text{post}}^2}_{\text{posterior variance}} = \frac{1}{\underbrace{\frac{1}{\sigma_0^2}}_{\text{prior precision}} + \underbrace{\frac{n}{\sigma^2}}_{\text{data precision}}}",
     "mu_0 and sigma_0 are the prior mean and std (your initial guess and uncertainty); "
     "x-bar is the sample mean from the data; sigma is the known data std; n is the "
     "sample size. The formula looks intimidating but it is just saying: 'average the "

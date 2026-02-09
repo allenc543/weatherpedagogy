@@ -46,8 +46,8 @@ concept_box(
 
 formula_box(
     "UMAP Objective (Cross-Entropy)",
-    r"C = \sum_{e \in E} \left[ w_h(e)\,\log\frac{w_h(e)}{w_l(e)} "
-    r"+ (1-w_h(e))\,\log\frac{1-w_h(e)}{1-w_l(e)} \right]",
+    r"\underbrace{C}_{\text{cross-entropy cost}} = \sum_{e \in E} \left[ \underbrace{w_h(e)}_{\text{high-D weight}}\,\log\frac{w_h(e)}{\underbrace{w_l(e)}_{\text{low-D weight}}} "
+    r"+ \underbrace{(1-w_h(e))}_{\text{repulsive term}}\,\log\frac{1-w_h(e)}{1-w_l(e)} \right]",
     "w_h = edge weights in the high-D graph, w_l = edge weights in the low-D "
     "layout. Minimizing this cross-entropy makes the 2-D layout match the "
     "high-D neighborhood structure. The repulsive term (second part) is what "

@@ -46,7 +46,7 @@ concept_box(
 
 formula_box(
     "Autocorrelation at Lag k",
-    r"\rho_k = \frac{\text{Cov}(Y_t, Y_{t-k})}{\text{Var}(Y_t)}",
+    r"\underbrace{\rho_k}_{\text{autocorrelation at lag k}} = \frac{\underbrace{\text{Cov}(Y_t, Y_{t-k})}_{\text{covariance with lagged self}}}{\underbrace{\text{Var}(Y_t)}_{\text{overall variance}}}",
     "rho_k ranges from -1 to 1. Values near 0 mean no linear dependence at that "
     "lag. Values near 1 mean 'knowing the value k steps ago basically tells you "
     "the value now.'"

@@ -47,7 +47,7 @@ concept_box(
 
 formula_box(
     "PDF of a Normal Distribution",
-    r"f(x) = \frac{1}{\sigma\sqrt{2\pi}} \, e^{-\frac{(x - \mu)^2}{2\sigma^2}}",
+    r"\underbrace{f(x)}_{\text{probability density}} = \frac{1}{\underbrace{\sigma}_{\text{std dev}}\sqrt{2\pi}} \, e^{-\frac{(\overbrace{x}^{\text{observed value}} - \overbrace{\mu}^{\text{mean}})^2}{2\underbrace{\sigma^2}_{\text{variance}}}}",
     "mu = mean, sigma = standard deviation. The formula looks intimidating but it's "
     "really just saying: values near mu are likely, values far from mu are exponentially unlikely.",
 )
@@ -237,7 +237,7 @@ concept_box(
 
 formula_box(
     "Standard Error of the Mean",
-    r"SE = \frac{\sigma}{\sqrt{n}}",
+    r"\underbrace{SE}_{\text{standard error}} = \frac{\underbrace{\sigma}_{\text{population std dev}}}{\sqrt{\underbrace{n}_{\text{sample size}}}}",
     "As n increases, SE shrinks. This means the sampling distribution of the mean gets "
     "narrower and narrower -- your averages become more and more precise. But notice the "
     "square root: to halve the SE, you need to quadruple n. Diminishing returns are real.",

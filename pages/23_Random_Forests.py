@@ -63,7 +63,7 @@ The randomness comes from two sources:
 
 formula_box(
     "Ensemble Prediction (Majority Vote)",
-    r"\hat{y} = \text{mode}\left(\hat{y}_1, \hat{y}_2, \ldots, \hat{y}_B\right)",
+    r"\underbrace{\hat{y}}_{\text{final prediction}} = \underbrace{\text{mode}}_{\text{majority vote}}\left(\underbrace{\hat{y}_1, \hat{y}_2, \ldots, \hat{y}_B}_{\text{individual tree predictions}}\right)",
     "Where B is the number of trees. Each tree casts one vote. The most popular answer "
     "wins. No weighting, no fancy aggregation -- just raw democracy."
 )

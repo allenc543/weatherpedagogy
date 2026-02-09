@@ -51,7 +51,7 @@ concept_box(
 
 formula_box(
     "SVM Optimization Objective",
-    r"\min_{\mathbf{w}, b} \frac{1}{2}\|\mathbf{w}\|^2 \quad \text{s.t. } y_i(\mathbf{w}^\top \mathbf{x}_i + b) \geq 1, \; \forall i",
+    r"\min_{\underbrace{\mathbf{w}, b}_{\text{boundary params}}} \underbrace{\frac{1}{2}\|\mathbf{w}\|^2}_{\text{maximize margin}} \quad \text{s.t. } \underbrace{y_i}_{\text{true label}} \underbrace{(\mathbf{w}^\top \mathbf{x}_i + b)}_{\text{decision score}} \geq 1, \; \forall i",
     "Minimize the norm of the weight vector (which is equivalent to maximizing the margin) "
     "subject to all points being on the correct side. The math is elegant: a constrained "
     "optimization problem with a quadratic objective and linear constraints."
@@ -136,7 +136,7 @@ concept_box(
 
 formula_box(
     "RBF Kernel",
-    r"K(\mathbf{x}, \mathbf{x}') = \exp\left(-\gamma \|\mathbf{x} - \mathbf{x}'\|^2\right)",
+    r"\underbrace{K(\mathbf{x}, \mathbf{x}')}_{\text{kernel similarity}} = \exp\!\left(-\underbrace{\gamma}_{\text{reach parameter}} \underbrace{\|\mathbf{x} - \mathbf{x}'\|^2}_{\text{squared distance}}\right)",
     "Gamma controls how far the influence of a single training point reaches. "
     "Small gamma = far reach, smooth boundary. Large gamma = close reach, wiggly boundary "
     "that hugs each data point. Think of gamma as the SVM's magnifying glass: high gamma "

@@ -40,13 +40,13 @@ col1, col2 = st.columns(2)
 with col1:
     formula_box(
         "Multiple Regression Model",
-        r"\hat{y} = \beta_0 + \beta_1 x_1 + \beta_2 x_2 + \cdots + \beta_p x_p",
+        r"\underbrace{\hat{y}}_{\text{predicted temp}} = \underbrace{\beta_0}_{\text{intercept}} + \underbrace{\beta_1}_{\text{coefficient 1}} \underbrace{x_1}_{\text{predictor 1}} + \underbrace{\beta_2}_{\text{coefficient 2}} \underbrace{x_2}_{\text{predictor 2}} + \cdots + \underbrace{\beta_p}_{\text{coefficient p}} \underbrace{x_p}_{\text{predictor p}}",
         "Each beta_j represents the effect of x_j on y, holding all other predictors constant. This 'holding constant' part is the whole reason we bother with multiple regression instead of running separate simple regressions.",
     )
 with col2:
     formula_box(
         "Adjusted R-squared",
-        r"R^2_{\text{adj}} = 1 - \frac{(1 - R^2)(n - 1)}{n - p - 1}",
+        r"\underbrace{R^2_{\text{adj}}}_{\text{adjusted R-squared}} = 1 - \frac{(1 - \underbrace{R^2}_{\text{raw R-squared}})(\underbrace{n}_{\text{sample size}} - 1)}{n - \underbrace{p}_{\text{num predictors}} - 1}",
         "Here's the catch with regular R-squared: it NEVER decreases when you add a predictor, even a random noise column. Adjusted R-squared penalizes for the number of predictors, so it can actually go down if you add a useless variable. It's the honest version of R-squared.",
     )
 
@@ -65,7 +65,7 @@ concept_box(
 
 formula_box(
     "VIF",
-    r"\text{VIF}_j = \frac{1}{1 - R^2_j}",
+    r"\underbrace{\text{VIF}_j}_{\text{variance inflation}} = \frac{1}{1 - \underbrace{R^2_j}_{\text{R-sq of } x_j \text{ on others}}}",
     "where R-squared_j comes from regressing predictor x_j on all the OTHER predictors. If the other predictors can explain x_j well (high R-squared_j), then x_j is redundant, and VIF is high.",
 )
 

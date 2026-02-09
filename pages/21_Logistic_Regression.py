@@ -49,7 +49,7 @@ concept_box(
 
 formula_box(
     "Sigmoid Function",
-    r"\sigma(z) = \frac{1}{1 + e^{-z}} \quad\text{where } z = \mathbf{w}^\top \mathbf{x} + b",
+    r"\underbrace{\sigma(z)}_{\text{predicted probability}} = \frac{1}{1 + e^{-\underbrace{z}_{\text{linear combo}}}} \quad\text{where } z = \underbrace{\mathbf{w}^\top}_{\text{learned weights}} \underbrace{\mathbf{x}}_{\text{weather features}} + \underbrace{b}_{\text{bias term}}",
     "The output is always between 0 and 1, which we interpret as P(y=1|x). "
     "Negative infinity maps to 0, positive infinity maps to 1, and 0 maps to exactly 0.5. "
     "It is one of those elegant mathematical objects that does exactly what you need."
@@ -187,7 +187,7 @@ concept_box(
 
 formula_box(
     "Multi-class Decision Rule",
-    r"\hat{y} = \arg\max_k \; P(y=k \mid \mathbf{x}) = \arg\max_k \; \sigma(\mathbf{w}_k^\top \mathbf{x} + b_k)",
+    r"\underbrace{\hat{y}}_{\text{predicted city}} = \underbrace{\arg\max_k}_{\text{pick best class}} \; \underbrace{P(y=k \mid \mathbf{x})}_{\text{class probability}} = \arg\max_k \; \underbrace{\sigma(\mathbf{w}_k^\top \mathbf{x} + b_k)}_{\text{sigmoid of city k's score}}",
     "Each class gets its own weight vector and bias. It is like 6 experts, each "
     "specialized in recognizing one city, shouting their confidence levels. Loudest wins."
 )

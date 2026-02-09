@@ -45,8 +45,8 @@ concept_box(
 
 formula_box(
     "Fourier Terms for Seasonality",
-    r"s(t) = \sum_{n=1}^{N} \left( a_n \cos\!\left(\frac{2\pi n t}{P}\right) "
-    r"+ b_n \sin\!\left(\frac{2\pi n t}{P}\right) \right)",
+    r"\underbrace{s(t)}_{\text{seasonal component}} = \underbrace{\sum_{n=1}^{N}}_{\text{sum of harmonics}} \left( \underbrace{a_n}_{\text{cosine weight}} \cos\!\left(\frac{2\pi n t}{\underbrace{P}_{\text{period (e.g. 365)}}}\right) "
+    r"+ \underbrace{b_n}_{\text{sine weight}} \sin\!\left(\frac{2\pi n t}{P}\right) \right)",
     "P is the period (365.25 for yearly, 7 for weekly). N controls the flexibility "
     "of the seasonal shape -- more terms means the seasonal pattern can have sharper "
     "peaks and valleys. For yearly temperature, N=10 is usually plenty."

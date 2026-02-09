@@ -90,7 +90,7 @@ concept_box(
 
 formula_box(
     "Simple RNN Cell",
-    r"h_t = \tanh(W_h h_{t-1} + W_x x_t + b)",
+    r"\underbrace{h_t}_{\text{updated hidden state}} = \tanh\!\left(\underbrace{W_h}_{\text{recurrent weights}} \underbrace{h_{t-1}}_{\text{previous hidden state}} + \underbrace{W_x}_{\text{input weights}} \underbrace{x_t}_{\text{current observation}} + \underbrace{b}_{\text{bias}}\right)",
     "h_t = hidden state at time t (the updated note), x_t = input at time t (the "
     "current hour's temperature). The key: h_t depends on h_{t-1}, creating a chain "
     "that links every hour in the sequence. The hidden state at 3 PM contains traces "
@@ -156,10 +156,10 @@ concept_box(
     "<i>learns</i> when to open and close each gate."
 )
 
-formula_box("Forget Gate", r"f_t = \sigma(W_f [h_{t-1}, x_t] + b_f)", "Controls what to forget from the cell state (the long-term notebook). A value of 1 means 'keep everything from last hour.' A value of 0 means 'wipe the slate clean.'")
-formula_box("Input Gate", r"i_t = \sigma(W_i [h_{t-1}, x_t] + b_i)", "Controls what new information to write into the cell state. When a significant weather change occurs (sudden temperature drop, humidity spike), this gate opens wide.")
-formula_box("Cell State Update", r"C_t = f_t \odot C_{t-1} + i_t \odot \tilde{C}_t", "The cell state is the LSTM's long-term memory. This equation is where the magic happens: when f_t is close to 1 and i_t is close to 0, old information flows through unchanged -- and so does the gradient during backpropagation. This is what solves the vanishing gradient problem.")
-formula_box("Output Gate", r"o_t = \sigma(W_o [h_{t-1}, x_t] + b_o)", "Controls what part of the cell state to output as the hidden state. Not everything in long-term memory is relevant for the current prediction.")
+formula_box("Forget Gate", r"\underbrace{f_t}_{\text{forget gate output}} = \underbrace{\sigma}_{\text{sigmoid}}\!\left(\underbrace{W_f}_{\text{forget weights}} [\underbrace{h_{t-1}}_{\text{previous state}}, \underbrace{x_t}_{\text{current input}}] + \underbrace{b_f}_{\text{forget bias}}\right)", "Controls what to forget from the cell state (the long-term notebook). A value of 1 means 'keep everything from last hour.' A value of 0 means 'wipe the slate clean.'")
+formula_box("Input Gate", r"\underbrace{i_t}_{\text{input gate output}} = \underbrace{\sigma}_{\text{sigmoid}}\!\left(\underbrace{W_i}_{\text{input weights}} [\underbrace{h_{t-1}}_{\text{previous state}}, \underbrace{x_t}_{\text{current input}}] + \underbrace{b_i}_{\text{input bias}}\right)", "Controls what new information to write into the cell state. When a significant weather change occurs (sudden temperature drop, humidity spike), this gate opens wide.")
+formula_box("Cell State Update", r"\underbrace{C_t}_{\text{new cell state}} = \underbrace{f_t}_{\text{forget gate}} \odot \underbrace{C_{t-1}}_{\text{old cell state}} + \underbrace{i_t}_{\text{input gate}} \odot \underbrace{\tilde{C}_t}_{\text{candidate memory}}", "The cell state is the LSTM's long-term memory. This equation is where the magic happens: when f_t is close to 1 and i_t is close to 0, old information flows through unchanged -- and so does the gradient during backpropagation. This is what solves the vanishing gradient problem.")
+formula_box("Output Gate", r"\underbrace{o_t}_{\text{output gate value}} = \underbrace{\sigma}_{\text{sigmoid}}\!\left(\underbrace{W_o}_{\text{output weights}} [\underbrace{h_{t-1}}_{\text{previous state}}, \underbrace{x_t}_{\text{current input}}] + \underbrace{b_o}_{\text{output bias}}\right)", "Controls what part of the cell state to output as the hidden state. Not everything in long-term memory is relevant for the current prediction.")
 
 # ── 52.3 24-Hour Temperature Forecast ───────────────────────────────────────
 st.header("52.3  Interactive: 24-Hour Temperature Forecast")

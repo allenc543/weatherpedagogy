@@ -485,8 +485,8 @@ concept_box(
 
 formula_box(
     "Hierarchical Model for City Temperatures",
-    r"\mu_i \sim \mathcal{N}(\mu_{\text{global}}, \tau^2), \quad "
-    r"y_{ij} \sim \mathcal{N}(\mu_i, \sigma^2)",
+    r"\underbrace{\mu_i}_{\text{city mean temp}} \sim \mathcal{N}(\underbrace{\mu_{\text{global}}}_{\text{group mean}}, \underbrace{\tau^2}_{\text{between-city variance}}), \quad "
+    r"\underbrace{y_{ij}}_{\text{hourly reading}} \sim \mathcal{N}(\underbrace{\mu_i}_{\text{city mean}}, \underbrace{\sigma^2}_{\text{within-city variance}})",
     "mu_i is the mean temperature for city i; mu_global and tau describe the group-level "
     "distribution of city means; sigma is the within-city noise. The key insight: each "
     "city's mu_i is regularized toward mu_global, with the amount of regularization "

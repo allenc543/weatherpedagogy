@@ -106,15 +106,15 @@ with col2:
 
 formula_box(
     "Difference-in-Differences Estimator",
-    r"\hat{\delta}_{DiD} = (\bar{Y}_{T,\text{after}} - \bar{Y}_{T,\text{before}}) "
-    r"- (\bar{Y}_{C,\text{after}} - \bar{Y}_{C,\text{before}})",
+    r"\underbrace{\hat{\delta}_{DiD}}_{\text{causal effect estimate}} = (\underbrace{\bar{Y}_{T,\text{after}}}_{\text{treated, after}} - \underbrace{\bar{Y}_{T,\text{before}}}_{\text{treated, before}}) "
+    r"- (\underbrace{\bar{Y}_{C,\text{after}}}_{\text{control, after}} - \underbrace{\bar{Y}_{C,\text{before}}}_{\text{control, before}})",
     "T = treatment group (e.g., inland cities), C = control group (e.g., coastal cities). "
     "For our Dallas-vs-Houston summer example: (33 - 20) - (30 - 22) = 13 - 8 = 5 degrees C.",
 )
 
 formula_box(
     "Granger Causality Test",
-    r"Y_t = \alpha + \sum_{i=1}^{p} \beta_i Y_{t-i} + \sum_{i=1}^{p} \gamma_i X_{t-i} + \epsilon_t",
+    r"\underbrace{Y_t}_{\text{wind today}} = \underbrace{\alpha}_{\text{intercept}} + \sum_{i=1}^{\underbrace{p}_{\text{lag order}}} \underbrace{\beta_i}_{\text{own-lag weights}} \underbrace{Y_{t-i}}_{\text{past wind}} + \sum_{i=1}^{p} \underbrace{\gamma_i}_{\text{cross-lag weights}} \underbrace{X_{t-i}}_{\text{past pressure}} + \underbrace{\epsilon_t}_{\text{noise}}",
     "Test H0: all gamma_i = 0 (pressure's past does not help predict wind beyond wind's own past). "
     "Reject if F-test is significant -- meaning pressure contains information about future wind "
     "that wind's own history does not.",

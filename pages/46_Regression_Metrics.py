@@ -76,14 +76,14 @@ col1, col2 = st.columns(2)
 with col1:
     formula_box(
         "Mean Absolute Error (MAE)",
-        r"\text{MAE} = \frac{1}{n}\sum_{i=1}^{n}|y_i - \hat{y}_i|",
+        r"\underbrace{\text{MAE}}_{\text{avg miss distance}} = \frac{1}{\underbrace{n}_{\text{num predictions}}}\sum_{i=1}^{n}\underbrace{|y_i - \hat{y}_i|}_{\text{absolute error per reading}}",
         "For our weather model: if MAE = 3.0 C, the model's temperature predictions "
         "are typically off by about 3 degrees. That is the difference between 'T-shirt "
         "weather' and 'maybe grab a light jacket.'"
     )
     formula_box(
         "Mean Squared Error (MSE)",
-        r"\text{MSE} = \frac{1}{n}\sum_{i=1}^{n}(y_i - \hat{y}_i)^2",
+        r"\underbrace{\text{MSE}}_{\text{avg squared miss}} = \frac{1}{\underbrace{n}_{\text{num predictions}}}\sum_{i=1}^{n}\underbrace{(y_i - \hat{y}_i)^2}_{\text{squared error per reading}}",
         "A prediction off by 10 degrees contributes 100 to the MSE; a prediction off "
         "by 1 degree contributes only 1. If you care about avoiding catastrophic misses "
         "-- like predicting 20 C when it is actually 35 C -- MSE is the metric that "
@@ -92,14 +92,14 @@ with col1:
 with col2:
     formula_box(
         "Root Mean Squared Error (RMSE)",
-        r"\text{RMSE} = \sqrt{\text{MSE}}",
+        r"\underbrace{\text{RMSE}}_{\text{typical error in degrees}} = \sqrt{\underbrace{\text{MSE}}_{\text{mean squared error}}}",
         "RMSE of 4.2 C means your typical error is about 4 degrees, in units you can "
         "feel. The difference between RMSE and MAE tells you about outliers: if RMSE is "
         "much bigger than MAE, a few predictions are spectacularly wrong."
     )
     formula_box(
         "R-squared (Coefficient of Determination)",
-        r"R^2 = 1 - \frac{\sum(y_i - \hat{y}_i)^2}{\sum(y_i - \bar{y})^2}",
+        r"\underbrace{R^2}_{\text{variance explained}} = 1 - \frac{\underbrace{\sum(y_i - \hat{y}_i)^2}_{\text{model's leftover error}}}{\underbrace{\sum(y_i - \bar{y})^2}_{\text{total temp variation}}}",
         "R-squared compares your model to the dumbest possible model: always predicting "
         "the average temperature. If R-squared = 0.0, your fancy model does no better than "
         "just saying 'it is probably 20 C' every time. R-squared = 1.0 means perfection. "

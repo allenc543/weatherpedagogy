@@ -49,7 +49,7 @@ concept_box(
 
 formula_box(
     "Silhouette Score for Point i",
-    r"s(i) = \frac{b(i) - a(i)}{\max(a(i), b(i))}",
+    r"\underbrace{s(i)}_{\text{silhouette score}} = \frac{\underbrace{b(i)}_{\text{nearest cluster dist}} - \underbrace{a(i)}_{\text{own cluster dist}}}{\max(a(i),\; b(i))}",
     "a(i) = average distance to points in the SAME cluster (cohesion)\n"
     "b(i) = average distance to points in the NEAREST other cluster (separation)"
 )

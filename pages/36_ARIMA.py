@@ -46,8 +46,8 @@ concept_box(
 
 formula_box(
     "ARIMA(p, d, q) Model",
-    r"Y'_t = c + \phi_1 Y'_{t-1} + \cdots + \phi_p Y'_{t-p} "
-    r"+ \theta_1 \epsilon_{t-1} + \cdots + \theta_q \epsilon_{t-q} + \epsilon_t",
+    r"\underbrace{Y'_t}_{\text{differenced temp}} = \underbrace{c}_{\text{constant}} + \underbrace{\phi_1 Y'_{t-1} + \cdots + \phi_p Y'_{t-p}}_{\text{AR: weighted recent values}} "
+    r"+ \underbrace{\theta_1 \epsilon_{t-1} + \cdots + \theta_q \epsilon_{t-q}}_{\text{MA: weighted recent errors}} + \underbrace{\epsilon_t}_{\text{white noise}}",
     "Y' is the differenced series, phi = AR coefficients ('how much do I trust "
     "yesterday?'), theta = MA coefficients ('how much do I correct for yesterday's "
     "mistake?'), epsilon = white noise. The whole thing is basically a sophisticated "

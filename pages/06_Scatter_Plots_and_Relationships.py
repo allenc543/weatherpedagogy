@@ -46,7 +46,7 @@ concept_box(
 
 formula_box(
     "Pearson Correlation Coefficient",
-    r"r = \frac{\sum (x_i - \bar{x})(y_i - \bar{y})}"
+    r"\underbrace{r}_{\text{Pearson correlation}} = \frac{\sum (\underbrace{x_i}_{\text{x observation}} - \underbrace{\bar{x}}_{\text{x mean}})(\underbrace{y_i}_{\text{y observation}} - \underbrace{\bar{y}}_{\text{y mean}})}"
     r"{\sqrt{\sum(x_i-\bar{x})^2 \sum(y_i-\bar{y})^2}}",
     "r ranges from -1 (perfect negative linear relationship) to +1 (perfect positive). "
     "r = 0 means no *linear* relationship -- but be careful, there could still be a strong "

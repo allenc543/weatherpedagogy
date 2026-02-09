@@ -120,7 +120,7 @@ concept_box(
 
 formula_box(
     "Stacking Prediction",
-    r"\hat{y} = g\!\left(\hat{y}_1, \hat{y}_2, \ldots, \hat{y}_M\right)",
+    r"\underbrace{\hat{y}}_{\text{final prediction}} = \underbrace{g}_{\text{meta-learner}}\!\left(\underbrace{\hat{y}_1, \hat{y}_2, \ldots, \hat{y}_M}_{\text{base model predictions}}\right)",
     "g() is the meta-learner; y_hat_1..M are the base model predictions. The meta-learner "
     "takes M predictions as input features and outputs the final prediction. It's just "
     "another classifier, but trained on predictions instead of weather data."

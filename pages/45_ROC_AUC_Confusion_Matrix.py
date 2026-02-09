@@ -79,9 +79,9 @@ concept_box(
 
 formula_box(
     "Key Metrics from the Confusion Matrix",
-    r"\text{Precision} = \frac{TP}{TP + FP}, \quad "
-    r"\text{Recall} = \frac{TP}{TP + FN}, \quad "
-    r"F_1 = 2 \cdot \frac{P \cdot R}{P + R}",
+    r"\underbrace{\text{Precision}}_{\text{correct when predicted}} = \frac{\underbrace{TP}_{\text{true positives}}}{\underbrace{TP + FP}_{\text{all predicted positive}}}, \quad "
+    r"\underbrace{\text{Recall}}_{\text{found from actual}} = \frac{\underbrace{TP}_{\text{true positives}}}{\underbrace{TP + FN}_{\text{all actual positive}}}, \quad "
+    r"\underbrace{F_1}_{\text{balanced score}} = 2 \cdot \frac{\underbrace{P}_{\text{precision}} \cdot \underbrace{R}_{\text{recall}}}{P + R}",
     "TP = True Positive, FP = False Positive, FN = False Negative. For our city "
     "classification: if we focus on Houston, TP = readings correctly identified as "
     "Houston, FP = readings from other cities that the model wrongly called Houston, "
@@ -356,7 +356,7 @@ concept_box(
 
 formula_box(
     "TPR and FPR",
-    r"\text{TPR} = \frac{TP}{TP+FN}, \qquad \text{FPR} = \frac{FP}{FP+TN}",
+    r"\underbrace{\text{TPR}}_{\text{hit rate}} = \frac{\underbrace{TP}_{\text{correctly caught}}}{\underbrace{TP+FN}_{\text{all actual positive}}}, \qquad \underbrace{\text{FPR}}_{\text{false alarm rate}} = \frac{\underbrace{FP}_{\text{wrong alerts}}}{\underbrace{FP+TN}_{\text{all actual negative}}}",
     f"For our weather task: TPR answers 'of all true {target_city} readings, what "
     f"fraction did the model catch?' FPR answers 'of all readings from OTHER cities, "
     f"what fraction did the model incorrectly call {target_city}?'"

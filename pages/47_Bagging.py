@@ -77,13 +77,13 @@ concept_box(
 
 formula_box(
     "Bagging Prediction (Classification)",
-    r"\hat{y} = \text{mode}\bigl(\hat{y}_1, \hat{y}_2, \ldots, \hat{y}_B\bigr)",
+    r"\underbrace{\hat{y}}_{\text{ensemble prediction}} = \text{mode}\bigl(\underbrace{\hat{y}_1, \hat{y}_2, \ldots, \hat{y}_B}_{\text{individual tree votes}}\bigr)",
     "B = number of bootstrap trees. Each tree votes for a city (Dallas, Houston, NYC...) and the city with the most votes wins. If 67 trees say 'Houston' and 33 say 'Dallas,' the ensemble predicts Houston."
 )
 
 formula_box(
     "Out-of-Bag (OOB) Score",
-    r"\text{OOB Error} = \frac{1}{n}\sum_{i=1}^{n}\mathbb{1}\!\bigl[\hat{y}_i^{oob} \neq y_i\bigr]",
+    r"\underbrace{\text{OOB Error}}_{\text{free validation estimate}} = \frac{1}{\underbrace{n}_{\text{total readings}}}\sum_{i=1}^{n}\underbrace{\mathbb{1}\!\bigl[\hat{y}_i^{oob} \neq y_i\bigr]}_{\text{1 if prediction wrong}}",
     "Each weather reading is left out of roughly 36.8% of the trees. For that reading, "
     "you can get a prediction using only the trees that did NOT train on it -- a free "
     "cross-validation score without setting aside a separate test set. The OOB score "

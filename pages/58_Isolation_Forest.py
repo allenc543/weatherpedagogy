@@ -70,7 +70,7 @@ concept_box(
 
 formula_box(
     "Anomaly Score",
-    r"s(x, n) = 2^{-\frac{E[h(x)]}{c(n)}}",
+    r"\underbrace{s(x, n)}_{\text{anomaly score}} = 2^{-\frac{\overbrace{E[h(x)]}^{\text{mean path length}}}{\underbrace{c(n)}_{\text{baseline path length}}}}",
     "h(x) is the path length for point x (how many splits to isolate it); "
     "c(n) is the average path length in a random binary tree of n points (the baseline). "
     "Score close to 1 = definitely anomalous (isolated quickly); close to 0.5 = boringly "

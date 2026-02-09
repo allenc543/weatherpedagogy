@@ -106,7 +106,7 @@ st.plotly_chart(fig, use_container_width=True)
 
 formula_box(
     "Standard Error of the Mean",
-    r"SE = \frac{\sigma}{\sqrt{n}}",
+    r"\underbrace{SE}_{\text{standard error}} = \frac{\underbrace{\sigma}_{\text{population std dev}}}{\sqrt{\underbrace{n}_{\text{sample size}}}}",
     "The standard error tells you how much your sample mean would bounce around if "
     "you kept drawing new samples of the same size. Small SE = precise estimate. "
     "Large SE = your sample mean could easily be far from the truth.",

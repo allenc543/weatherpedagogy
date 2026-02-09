@@ -90,7 +90,7 @@ with col1:
     )
     formula_box(
         "Z-Score",
-        r"z = \frac{x - \mu}{\sigma}",
+        r"\underbrace{z}_{\text{anomaly score}} = \frac{\underbrace{x}_{\text{observed value}} - \underbrace{\mu}_{\text{mean}}}{\underbrace{\sigma}_{\text{standard deviation}}}",
         "A z-score of 3 means the point is 3 standard deviations from the mean -- "
         "expected to happen about 0.3% of the time under a normal distribution. "
         "For Dallas temperature, that means roughly 50 out of 17,500 readings.",
@@ -115,7 +115,7 @@ with col2:
     )
     formula_box(
         "IQR Bounds",
-        r"\text{Lower} = Q_1 - k \cdot IQR, \quad \text{Upper} = Q_3 + k \cdot IQR",
+        r"\underbrace{\text{Lower}}_{\text{lower fence}} = \underbrace{Q_1}_{\text{25th percentile}} - \underbrace{k}_{\text{multiplier}} \cdot \underbrace{IQR}_{\text{interquartile range}}, \quad \underbrace{\text{Upper}}_{\text{upper fence}} = \underbrace{Q_3}_{\text{75th percentile}} + \underbrace{k}_{\text{multiplier}} \cdot \underbrace{IQR}_{\text{interquartile range}}",
         "With k=1.5, this corresponds roughly to 2.7 sigma for normal data. "
         "For Dallas temperature, the lower bound might be around -12 degrees C and "
         "the upper bound around 51 degrees C -- anything outside that range is flagged.",

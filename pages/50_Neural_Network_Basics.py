@@ -79,7 +79,7 @@ concept_box(
 
 formula_box(
     "Single Neuron",
-    r"y = \sigma\!\left(\sum_{i=1}^{n} w_i x_i + b\right) = \sigma(\mathbf{w}^T\mathbf{x} + b)",
+    r"\underbrace{y}_{\text{predicted temp}} = \underbrace{\sigma}_{\text{activation func}}\!\left(\sum_{i=1}^{n} \underbrace{w_i}_{\text{feature weight}} \underbrace{x_i}_{\text{weather input}} + \underbrace{b}_{\text{bias term}}\right)",
     "sigma = activation function, w = weights, b = bias, x = inputs. "
     "If sigma is the identity function (linear activation), this collapses to "
     "y = w*x + b, which is linear regression."
@@ -313,7 +313,7 @@ concept_box(
 
 formula_box(
     "Weight Update Rule",
-    r"w_{t+1} = w_t - \eta \cdot \frac{\partial \mathcal{L}}{\partial w_t}",
+    r"\underbrace{w_{t+1}}_{\text{new weight}} = \underbrace{w_t}_{\text{current weight}} - \underbrace{\eta}_{\text{step size}} \cdot \underbrace{\frac{\partial \mathcal{L}}{\partial w_t}}_{\text{downhill direction}}",
     "eta = learning rate (step size), L = loss function (e.g., mean squared error of "
     "temperature predictions), dL/dw = the gradient telling you which direction is "
     "downhill. This single equation is the entire training algorithm. Everything else "

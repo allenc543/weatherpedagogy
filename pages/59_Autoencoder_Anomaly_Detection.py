@@ -79,7 +79,7 @@ st.markdown(
 
 formula_box(
     "Reconstruction Error (Anomaly Score)",
-    r"\text{RE}(x) = \|x - \hat{x}\|^2 = \sum_{i=1}^{d} (x_i - \hat{x}_i)^2",
+    r"\underbrace{\text{RE}(x)}_{\text{anomaly score}} = \|\underbrace{x}_{\text{original input}} - \underbrace{\hat{x}}_{\text{reconstruction}}\|^2 = \sum_{i=1}^{\underbrace{d}_{\text{feature count}}} (\underbrace{x_i}_{\text{true value}} - \underbrace{\hat{x}_i}_{\text{predicted value}})^2",
     "x is the original 4-feature input (temp, humidity, wind, pressure), x-hat is the "
     "autoencoder's reconstruction. For that anomalous Houston reading, RE might be 2,710 "
     "(dominated by the humidity mismatch). For a normal reading, RE might be 0.02. "

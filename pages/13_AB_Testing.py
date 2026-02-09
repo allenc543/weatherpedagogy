@@ -63,7 +63,7 @@ with col3:
 
 formula_box(
     "Bonferroni Corrected Significance Level",
-    r"\alpha_{\text{adjusted}} = \frac{\alpha}{m}",
+    r"\underbrace{\alpha_{\text{adjusted}}}_{\text{corrected threshold}} = \frac{\underbrace{\alpha}_{\text{original threshold}}}{\underbrace{m}_{\text{number of tests}}}",
     "where m is the number of comparisons. For 10 tests at alpha = 0.05: alpha_adj = 0.005. "
     "Harsh? Yes. But at least you won't publish embarrassing false positives.",
 )
@@ -224,7 +224,7 @@ concept_box(
 
 formula_box(
     "Sample Size for Two-Sample t-test",
-    r"n = \left(\frac{z_{\alpha/2} + z_{\beta}}{\delta / \sigma}\right)^2",
+    r"\underbrace{n}_{\text{required sample size}} = \left(\frac{\underbrace{z_{\alpha/2}}_{\text{critical value}} + \underbrace{z_{\beta}}_{\text{power quantile}}}{\underbrace{\delta}_{\text{min detectable diff}} / \underbrace{\sigma}_{\text{std dev}}}\right)^2",
     "where delta is the minimum detectable difference, sigma is the standard deviation, "
     "z_alpha/2 is the critical value, and z_beta relates to desired power.",
 )

@@ -38,7 +38,7 @@ concept_box(
 
 formula_box(
     "CI for the Mean (Normal approximation)",
-    r"\bar{x} \;\pm\; z_{\alpha/2} \cdot \frac{s}{\sqrt{n}}",
+    r"\underbrace{\bar{x}}_{\text{sample mean}} \;\pm\; \underbrace{z_{\alpha/2}}_{\text{critical value}} \cdot \underbrace{\frac{s}{\sqrt{n}}}_{\text{standard error}}",
     "where x-bar is the sample mean, s is the sample standard deviation, n is the sample size, "
     "and z is the critical value from the standard normal distribution.",
 )

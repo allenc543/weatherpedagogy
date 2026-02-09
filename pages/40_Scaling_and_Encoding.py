@@ -173,17 +173,17 @@ concept_box(
 
 formula_box(
     "StandardScaler",
-    r"z = \frac{x - \mu}{\sigma}",
+    r"\underbrace{z}_{\text{scaled value}} = \frac{\underbrace{x}_{\text{raw feature}} - \underbrace{\mu}_{\text{feature mean}}}{\underbrace{\sigma}_{\text{feature std dev}}}",
     "Subtracts the mean, divides by std. The workhorse. Use this unless you have a reason not to."
 )
 formula_box(
     "MinMaxScaler",
-    r"x_{scaled} = \frac{x - x_{min}}{x_{max} - x_{min}}",
+    r"\underbrace{x_{scaled}}_{\text{scaled to [0,1]}} = \frac{\underbrace{x}_{\text{raw feature}} - \underbrace{x_{min}}_{\text{feature minimum}}}{\underbrace{x_{max} - x_{min}}_{\text{feature range}}}",
     "Maps everything to [0, 1]. Clean and simple, but one outlier can compress the whole range."
 )
 formula_box(
     "RobustScaler",
-    r"x_{scaled} = \frac{x - \text{median}}{\text{IQR}}",
+    r"\underbrace{x_{scaled}}_{\text{robust scaled}} = \frac{\underbrace{x}_{\text{raw feature}} - \underbrace{\text{median}}_{\text{middle value}}}{\underbrace{\text{IQR}}_{\text{interquartile range}}}",
     "Uses the median and interquartile range. Outliers don't warp the scaling for normal observations."
 )
 

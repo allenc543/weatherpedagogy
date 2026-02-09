@@ -103,7 +103,7 @@ concept_box(
 
 formula_box(
     "Autoencoder Objective",
-    r"\min_{\theta, \phi} \frac{1}{n}\sum_{i=1}^{n}\|x_i - D_\phi(E_\theta(x_i))\|^2",
+    r"\min_{\underbrace{\theta, \phi}_{\text{learned parameters}}} \frac{1}{\underbrace{n}_{\text{sample count}}}\sum_{i=1}^{n}\|\underbrace{x_i}_{\text{original reading}} - \underbrace{D_\phi}_{\text{decoder}}(\underbrace{E_\theta}_{\text{encoder}}(x_i))\|^2",
     "E = encoder, D = decoder, theta/phi = their parameters. In plain English: "
     "minimize the average squared difference between each original 4-number weather "
     "reading and its reconstruction after a round trip through the 2-number bottleneck."

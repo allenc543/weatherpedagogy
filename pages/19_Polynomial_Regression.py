@@ -39,7 +39,7 @@ concept_box(
 
 formula_box(
     "Polynomial Regression Model (degree d)",
-    r"\hat{y} = \beta_0 + \beta_1 x + \beta_2 x^2 + \cdots + \beta_d x^d",
+    r"\underbrace{\hat{y}}_{\text{predicted temp}} = \underbrace{\beta_0}_{\text{intercept}} + \underbrace{\beta_1}_{\text{linear coeff}} \underbrace{x}_{\text{day of year}} + \underbrace{\beta_2}_{\text{quadratic coeff}} x^2 + \cdots + \underbrace{\beta_d}_{\text{degree-d coeff}} x^{\underbrace{d}_{\text{poly degree}}}",
     "Degree 1 = straight line (what we've been doing). Degree 2 = parabola. Degree 3 = cubic. The higher the degree, the more flexible the curve -- but flexibility is a double-edged sword.",
 )
 

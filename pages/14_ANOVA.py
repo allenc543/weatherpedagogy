@@ -42,8 +42,7 @@ col1, col2 = st.columns(2)
 with col1:
     formula_box(
         "F-statistic",
-        r"F = \frac{\text{MS}_{\text{between}}}{\text{MS}_{\text{within}}} = "
-        r"\frac{\text{Variance between groups}}{\text{Variance within groups}}",
+        r"\underbrace{F}_{\text{test statistic}} = \frac{\underbrace{\text{MS}_{\text{between}}}_{\text{between-group variance}}}{\underbrace{\text{MS}_{\text{within}}}_{\text{within-group variance}}}",
         "The intuition is beautiful: if all groups have the same mean, then the variance "
         "between group means should be about the same as the variance within groups (both are "
         "just sampling noise). A large F means the between-group differences are too big to be "
@@ -52,7 +51,7 @@ with col1:
 with col2:
     formula_box(
         "Eta-squared (effect size for ANOVA)",
-        r"\eta^2 = \frac{SS_{\text{between}}}{SS_{\text{total}}}",
+        r"\underbrace{\eta^2}_{\text{effect size}} = \frac{\underbrace{SS_{\text{between}}}_{\text{between-group sum of sq}}}{\underbrace{SS_{\text{total}}}_{\text{total sum of squares}}}",
         "What fraction of the total variability is explained by group membership? "
         "0.01 = small (group explains 1% of variance), 0.06 = medium, 0.14 = large. "
         "Think of it as ANOVA's version of R-squared.",

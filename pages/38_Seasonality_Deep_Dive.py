@@ -186,7 +186,7 @@ concept_box(
 
 formula_box(
     "Discrete Fourier Transform",
-    r"X_k = \sum_{n=0}^{N-1} x_n \, e^{-i 2\pi k n / N}",
+    r"\underbrace{X_k}_{\text{frequency k amplitude}} = \underbrace{\sum_{n=0}^{N-1}}_{\text{over all time steps}} \underbrace{x_n}_{\text{temp at step n}} \, \underbrace{e^{-i 2\pi k n / N}}_{\text{complex sinusoid}}",
     "X_k gives the amplitude and phase at frequency k/N. The amplitude tells you "
     "'how strong is this frequency?'; the phase tells you 'when does the cycle peak?'"
 )

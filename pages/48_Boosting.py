@@ -70,7 +70,7 @@ concept_box(
 
 formula_box(
     "Gradient Boosting Update",
-    r"F_m(x) = F_{m-1}(x) + \eta \cdot h_m(x)",
+    r"\underbrace{F_m(x)}_{\text{updated ensemble}} = \underbrace{F_{m-1}(x)}_{\text{previous prediction}} + \underbrace{\eta}_{\text{learning rate}} \cdot \underbrace{h_m(x)}_{\text{error-correcting tree}}",
     "F_m = the ensemble's prediction after m rounds. eta = learning rate (how much trust "
     "to put in each new tree -- typically 0.01 to 0.3). h_m = the weak learner trained on "
     "the residual errors. Small eta means 'take cautious baby steps'; large eta means "

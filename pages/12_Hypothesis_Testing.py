@@ -38,13 +38,13 @@ col1, col2 = st.columns(2)
 with col1:
     formula_box(
         "t-test statistic (Welch's)",
-        r"t = \frac{\bar{x}_1 - \bar{x}_2}{\sqrt{\frac{s_1^2}{n_1} + \frac{s_2^2}{n_2}}}",
+        r"\underbrace{t}_{\text{test statistic}} = \frac{\overbrace{\bar{x}_1 - \bar{x}_2}^{\text{difference in means}}}{\underbrace{\sqrt{\frac{s_1^2}{n_1} + \frac{s_2^2}{n_2}}}_{\text{pooled standard error}}}",
         "The numerator is the difference you care about. The denominator is how much noise you'd expect. A big t means the signal is large relative to the noise.",
     )
 with col2:
     formula_box(
         "Cohen's d (effect size)",
-        r"d = \frac{\bar{x}_1 - \bar{x}_2}{s_{\text{pooled}}}",
+        r"\underbrace{d}_{\text{effect size}} = \frac{\overbrace{\bar{x}_1 - \bar{x}_2}^{\text{difference in means}}}{\underbrace{s_{\text{pooled}}}_{\text{pooled std dev}}}",
         "This tells you how big the difference actually is in standard-deviation units. "
         "A p-value tells you 'is the difference real?' while Cohen's d tells you 'is the difference "
         "worth caring about?' |d| < 0.2 = small, 0.5 = medium, 0.8 = large.",
